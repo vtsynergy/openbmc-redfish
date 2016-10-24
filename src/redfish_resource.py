@@ -79,7 +79,7 @@ class RedfishBase(object):
         else:
             return json.dumps(self.attrs)
 
-    def action(self,path,op):
+    def action(self, path, op):
         """Perfrom the requested action and return the information"""
         """FIXME: Fill in the details"""
         pass
@@ -118,9 +118,10 @@ class ChassisManager(RedfishCollectionBase):
     def __init__(self, name):
         super(ChassisManager, self).__init__(name)
 
+
 class ChassisInstance(RedfishBase):
     """Chassis Information"""
-    
+
     def __init__(self, name):
         super(ChassisInstance, self).__init__(name)
 
@@ -132,12 +133,26 @@ class SystemInstance(RedfishBase):
         super(SystemInstance, self).__init__(name)
 
 
-class CpuInstance(RedfishBase): 
+class CpuInstance(RedfishBase):
     """CPU Information"""
 
-    def __init__(self, name): 
+    def __init__(self, name):
         super(CpuInstance, self).__init__(name)
 
+
+class EventService(RedfishBase):
+    """Event Service"""
+
+    def __init__(self, name):
+        super(EventService, self).__init__(name)
+        self.attrs["ServiceEnabled"] = False
+
+
+class EventDestinationCollection(RedfishCollectionBase):
+    """Event Destinations Information"""
+
+    def __init__(self, name):
+        super(EventDestinationCollection, self).__init__(name)
 
 
 class RedfishBottleRoot(object):
@@ -152,6 +167,13 @@ class RedfishBottleRoot(object):
 
         self.chassis_m = ChassisManager("Chassis")
         self.v1.add_child(self.chassis_m)
+
+        self.event_service = EventService("EventService")
+        self.v1.add_child(self.event_service)
+
+        self.event_destination_collection = \
+            EventDestinationCollection("EventDestinationCollection")
+        self.v1.add_child(self.event_destination_collection)
 
     def print_all(self):
         self.root.print_all()
