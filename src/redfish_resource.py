@@ -33,7 +33,7 @@ class RedfishBase(object):
         """List of related objects"""
 
         self.name = name
-        """name for the class"""
+        """name for the class that specifies the Path to resource"""
 
         self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
 
@@ -104,6 +104,12 @@ class RedfishRoot(RedfishBase):
         super(RedfishRoot, self).__init__(name)
         self.path = str("/" + name)
 
+    def add_child(self, ob):
+        """When adding child for root, delete all the attributes"""
+        super(RedfishRoot, self).add_child(ob)
+        for key in self.attrs.keys():
+            del self.attrs[key]
+        self.attrs[ob.name] = ob.path
 
 class RootManager(RedfishBase):
     """Root Manager for Redfish"""
