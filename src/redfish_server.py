@@ -2,7 +2,7 @@
 
 import json
 import sys 
-from bottle import Bottle, route, run, template, get, post
+from bottle import Bottle, route, run, template, get, post, request
 from redfish_resource import *
 
 app = Bottle() 
@@ -18,6 +18,6 @@ def print_path(path):
 @app.post('/<path:path>')
 def post_action(path):
     path_list = path.split('/')
-    return redfisn_root.do_action(path_list,request)
+    return redfish_root.do_action(path_list,request)
 
 app.run(host='localhost', port=8080, debug=True)

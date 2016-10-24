@@ -81,8 +81,26 @@ class RedfishBase(object):
 
     def action(self,path,op):
         """Perfrom the requested action and return the information"""
-        """FIXME: Fill in the details"""
-        pass
+        """FIXME: Fill in the details for Error Class"""
+        if path[0] != self.name or len(path) == 1: 
+            print "[ACTION] Error: " + self.name + str(len(op)) + str(op[0])
+        elif len(path) > 3:
+            for children in self.child:
+                if children.name == path[1]:
+                    path.pop(0)
+                    return children.action(path,op)
+            else:
+                return "Error [ACTION]: Path not correct"
+        else:
+            if path[1] != 'Action':
+                return "Error: Action URI is incorrect"
+            else: 
+                action_list = path[2].split('.')
+                uri_namespace = action_list[0]
+                action = action_list[1]
+                print uri_namespace + action + str(op.POST.items())
+                return 
+
 
 
 class RedfishCollectionBase(RedfishBase):
