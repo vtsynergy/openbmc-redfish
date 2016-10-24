@@ -29,6 +29,10 @@ class RedfishBase(object):
         self.child = []
         """List of children resources"""
 
+        self.actions = {}
+        """Dictonary for action, key=Function, value = List of allowable
+        values"""
+
         self.related_object = []
         """List of related objects"""
 
@@ -79,28 +83,27 @@ class RedfishBase(object):
         else:
             return json.dumps(self.attrs)
 
-    def action(self,path,op):
+    def action(self, path, op):
         """Perfrom the requested action and return the information"""
         """FIXME: Fill in the details for Error Class"""
-        if path[0] != self.name or len(path) == 1: 
+        if path[0] != self.name or len(path) == 1:
             print "[ACTION] Error: " + self.name + str(len(op)) + str(op[0])
         elif len(path) > 3:
             for children in self.child:
                 if children.name == path[1]:
                     path.pop(0)
-                    return children.action(path,op)
+                    return children.action(path, op)
             else:
                 return "Error [ACTION]: Path not correct"
         else:
             if path[1] != 'Action':
                 return "Error: Action URI is incorrect"
-            else: 
+            else:
                 action_list = path[2].split('.')
                 uri_namespace = action_list[0]
                 action = action_list[1]
                 print uri_namespace + action + str(op.POST.items())
-                return 
-
+                return
 
 
 class RedfishCollectionBase(RedfishBase):
@@ -129,6 +132,7 @@ class RedfishRoot(RedfishBase):
             del self.attrs[key]
         self.attrs[ob.name] = ob.path
 
+
 class RootManager(RedfishBase):
     """Root Manager for Redfish"""
 
@@ -142,9 +146,10 @@ class ChassisManager(RedfishCollectionBase):
     def __init__(self, name):
         super(ChassisManager, self).__init__(name)
 
+
 class ChassisInstance(RedfishBase):
     """Chassis Information"""
-    
+
     def __init__(self, name):
         super(ChassisInstance, self).__init__(name)
 
@@ -156,12 +161,11 @@ class SystemInstance(RedfishBase):
         super(SystemInstance, self).__init__(name)
 
 
-class CpuInstance(RedfishBase): 
+class CpuInstance(RedfishBase):
     """CPU Information"""
 
-    def __init__(self, name): 
+    def __init__(self, name):
         super(CpuInstance, self).__init__(name)
-
 
 
 class RedfishBottleRoot(object):
