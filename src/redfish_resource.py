@@ -6,6 +6,7 @@
 
 import sys
 import json
+from obmc_redfish_providers import *
 
 """
 Redfish Resource Types
@@ -39,6 +40,11 @@ class RedfishBase(object):
         self.name = name
         """name for the class that specifies the Path to resource"""
 
+        self.static_data_filled = 0
+        """Flag to show if the static data was filled in attrs dictonary, update
+        the flag when the static data is filled, would be updated when the
+        resource is queried for the first time"""
+
         self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
 
     def add_child(self, obj):
@@ -47,6 +53,7 @@ class RedfishBase(object):
         obj.path = str(self.path + "/" + obj.name)
         obj.parent = self
         obj.attrs["@odata.id"] = obj.path
+        obj.provider = self.provider
 
     def print_attr(self):
         """debug function for printing values"""
@@ -62,6 +69,16 @@ class RedfishBase(object):
         print "----------------------------------------"
         for children in self.child:
             children.print_all()
+
+    def fill_static_data(self):
+        """Fill the static attributes of attrs dictonary at build. Extend this
+        function in inherited classes to update the information"""
+        pass
+        
+    def fill_dynamic_data(self):
+        """Update or fill the attributes of attrs dictonary when a get request
+        is recieved. Extend in inherited classes"""
+        pass
 
     def add_related_object(self, obj):
         """Add a related object to this item"""
@@ -81,6 +98,10 @@ class RedfishBase(object):
             else:
                 return "Error"
         else:
+            if self.static_data_filled == 0:
+                self.fill_static_data()
+                self.static_data_filled = 1
+            self.fill_dynamic_data()
             return json.dumps(self.attrs)
 
     def action(self, path, op):
@@ -102,8 +123,28 @@ class RedfishBase(object):
                 action_list = path[2].split('.')
                 uri_namespace = action_list[0]
                 action = action_list[1]
+                if action in self.actions.keys():
+                    print "FIXME: get attribute"
+                else:
+                    print "FIXME: return error object,  action is undefined"
                 print uri_namespace + action + str(op.POST.items())
                 return
+
+    def add_action(self, act, op): 
+        if(isinstance(op, list)):
+            self.actions[act] = op
+        else:
+            print "Error: Pass a list"
+
+    def fancy_uuid(self, op):
+        op = op.upper()
+        while len(op) < 32:
+            op = "0" + op
+        res = (op[0:7] + "-" + op[8:11] + "-" + op[12:15] + "-" + op[16:19] + 
+               "-" + op[20:31])
+        return res
+
+
 
 
 class RedfishCollectionBase(RedfishBase):
@@ -119,11 +160,12 @@ class RedfishCollectionBase(RedfishBase):
 
 
 class RedfishRoot(RedfishBase):
-    """Root object for redfish"""
+    """Root object for redfish, located at 'redfish'"""
 
-    def __init__(self, name):
+    def __init__(self, name, provider):
         super(RedfishRoot, self).__init__(name)
         self.path = str("/" + name)
+        self.provider = provider
 
     def add_child(self, ob):
         """When adding child for root, delete all the attributes"""
@@ -133,11 +175,34 @@ class RedfishRoot(RedfishBase):
         self.attrs[ob.name] = ob.path
 
 
-class RootManager(RedfishBase):
+class ServiceRoot(RedfishBase):
     """Root Manager for Redfish"""
 
-    def __init__(self, name):
-        super(RootManager, self).__init__(name)
+    def __init__(self, name, instance_id):
+        super(ServiceRoot, self).__init__(name)
+        self.namespace = "ServiceRoot"
+        """Namespace for ServiceRoot"""
+
+        self.instance_id = instance_id;
+        """Section: 7.6.1 Id for the resourse. Shall be unique """
+
+        self.version = "v1_0_3.ServiceRoot"
+        """Schema Version"""
+
+        self.instance_name = "Root Service"
+        """Section: 7.6.2 Human Readable Name, Need not be Unique"""
+
+    def fill_static_data(self):
+        super(ServiceRoot,self).fill_static_data()
+
+        self.attrs["Id"] = self.instance_id
+        self.attrs["Name"] = self.instance_name
+        self.attrs["RedfishVersion"] = REDFISH_VERSION
+        self.attrs["@odata.type"] = "#" + self.namespace + "." + self.version
+        for children in self.child:
+            self.attrs[children.name] = dict([("@odata.id",children.path)])
+        uuid = self.provider.get_system_id()
+        self.attrs["UUID"] = self.fancy_uuid(uuid)
 
 
 class ChassisManager(RedfishCollectionBase):
@@ -173,9 +238,11 @@ class RedfishBottleRoot(object):
 
     def __init__(self):
         """Build the resource tree in a top-down fashion"""
-        self.root = RedfishRoot("redfish")
+        self.provider = ObmcRedfishProviders()
 
-        self.v1 = RootManager("v1")
+        self.root = RedfishRoot("redfish", self.provider)
+
+        self.v1 = ServiceRoot("v1", "RootService")
         self.root.add_child(self.v1)
 
         self.chassis_m = ChassisManager("Chassis")

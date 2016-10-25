@@ -284,26 +284,26 @@ class ObmcRedfishProviders(object):
         print pydata
 
 
-providers = ObmcRedfishProviders()
-
-print providers.get_system_id()
-print providers.power_control('state')
-print providers.get_led_state()
-providers.get_system_state()
-providers.get_fan_speed()
-providers.get_cpu_info()
-# get_host_settings()
-print 'Number of cores: %d' % providers.get_cpu_core_count()
-print providers.get_chassis_info()
-
-for inventory_item in INVENTORY_ITEMS:
-    item = providers.get_inventory(inventory_item)
-    print ">>>>>>INVENTORY>>>>>>>>>>>>>>>>>>>>>"
-    providers.print_dict("", item)
-
-for sensors in SENSORS_INFO.keys():
-    value = providers.get_sensors(sensors)
-    providers.print_dict("", value)
-
-# get_inventory()
-# get_sensors()
+# providers = ObmcRedfishProviders()
+# 
+# print providers.get_system_id()
+# print providers.power_control('state')
+# print providers.get_led_state()
+# providers.get_system_state()
+# providers.get_fan_speed()
+# providers.get_cpu_info()
+# # get_host_settings()
+# print 'Number of cores: %d' % providers.get_cpu_core_count()
+# print providers.get_chassis_info()
+# 
+# for inventory_item in INVENTORY_ITEMS:
+#     item = providers.get_inventory(inventory_item)
+#     print ">>>>>>INVENTORY>>>>>>>>>>>>>>>>>>>>>"
+#     providers.print_dict("", item)
+# 
+# for sensors in SENSORS_INFO.keys():
+#     value = providers.get_sensors(sensors)
+#     providers.print_dict("", value)
+# 
+# # get_inventory()
+# # get_sensors()
