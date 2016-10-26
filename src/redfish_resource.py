@@ -148,8 +148,8 @@ class RedfishBase(object):
         op = op.upper()
         while len(op) < 32:
             op = "0" + op
-        res = (op[0:7] + "-" + op[8:11] + "-" + op[12:15] + "-" + op[16:19] + 
-               "-" + op[20:31])
+        res = (op[0:8] + "-" + op[8:12] + "-" + op[12:16] + "-" + op[16:20] + 
+               "-" + op[20:32])
         return res
 
 
