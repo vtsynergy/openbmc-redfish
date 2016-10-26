@@ -149,7 +149,7 @@ class RedfishBase(object):
             if 'Actions' not in self.attrs:
                 self.attrs['Actions'] = {}
             self.attrs['Actions'][key] = dict([('target', target),
-                                             (allowed_values, op)])
+                                               (allowed_values, op)])
         else:
             print "Error: Pass a list"
 
@@ -174,7 +174,7 @@ class RedfishCollectionBase(RedfishBase):
         self.attrs["Members@odata.count"] += 1
 
     def fill_static_data(self):
-        super(RedfishCollectionBase,self).fill_static_data()
+        super(RedfishCollectionBase, self).fill_static_data()
         self.attrs["Members"] = []
         for children in self.child:
             self.attrs["Members"].append(dict([(ODATA_ID, children.path)]))
@@ -215,7 +215,6 @@ class ServiceRoot(RedfishBase):
 
         self.metadata_path = self.metadata_path + "#" + self.namespace
 
-
     def fill_static_data(self):
         super(ServiceRoot, self).fill_static_data()
 
@@ -228,6 +227,7 @@ class ServiceRoot(RedfishBase):
         uuid = self.provider.get_system_id()
         self.attrs["UUID"] = self.fancy_uuid(uuid)
         self.attrs[ODATA_CONTEXT] = self.metadata_path
+
 
 class SystemCollection(RedfishCollectionBase):
     """Computer System Collection class"""
@@ -262,6 +262,7 @@ class ChassisCollection(RedfishCollectionBase):
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
         self.attrs[ODATA_CONTEXT] = self.metadata_path
 
+
 class ChassisInstance(RedfishBase):
     """Chassis Information"""
 
@@ -286,29 +287,25 @@ class System(RedfishBase):
     def fill_static_data(self):
         super(System, self).fill_static_data()
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.metadata_path = self.parent.metadata_path + "/Members/$entity" 
+        self.metadata_path = self.parent.metadata_path + "/Members/$entity"
         self.attrs[ODATA_CONTEXT] = self.metadata_path
         self.attrs["Id"] = self.name
         self.attrs["SystemType"] = self.provider.get_system_type()
-        self.add_action("Reset", ['On', 
+        self.add_action("Reset", ['On',
                                   'ForceOff',
-                                  'GracefulShutDown', 
+                                  'GracefulShutDown',
                                   'ForceRestart'
-                                  'GracefulRestart' 
-                                 ])
+                                  'GracefulRestart'])
         self.add_action("LedUpdate", ['On',
                                       'Off',
                                       'BlinkFast',
-                                      'BlinkSlow'
-                                      ])
-    
+                                      'BlinkSlow'])
+
     def reset(self, op):
         self.provider.power_control(op)
 
-    
-    def ledupdate(self,op):
+    def ledupdate(self, op):
         self.provider.led_operation(op, 'identify')
-
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
@@ -317,17 +314,6 @@ class System(RedfishBase):
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
 
-
-
-#       self.provider.get_host_settings()
-#        Have put here for reference. Would remove it
-#        print self.provider.led_operation('On', 'identify')
-#        print self.provider.led_operation('On', 'heartbeat')
-#        print self.provider.led_operation('On', 'power')
-#        print self.provider.led_operation('state', 'identify')
-#        print self.provider.led_operation('state', 'heartbeat')
-#        print self.provider.led_operation('state', 'power')
-#
 
 class CpuInstance(RedfishBase):
     """CPU Information"""
@@ -349,7 +335,7 @@ class RedfishBottleRoot(object):
         self.root.add_child(self.v1)
 
         self.chassis_collection = ChassisCollection("Chassis",
-                                           "Chassis Collection")
+                                                    "Chassis Collection")
         self.v1.add_child(self.chassis_collection)
 
         self.system_collection = SystemCollection("Systems",
@@ -357,14 +343,13 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.system_collection)
 
         self.chassis_info = self.provider.get_chassis_info()
-        
+
         print str(self.chassis_info)
 
-        self.system = System(self.chassis_info['SerialNumber'], 
+        self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
 
         self.system_collection.add_child(self.system)
-
 
     def print_all(self):
         self.root.print_all()

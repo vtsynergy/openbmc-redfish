@@ -42,8 +42,7 @@ SENSORS_INFO = {
                'POWER_MAX_CAP': 'max_cap',
                'POWER_NORMAL_CAP':  'n_cap',
                'POWER_USER_CAP': 'user_cap',
-               'BOOT_COUNT': 'BootCount'
-               }
+               'BOOT_COUNT': 'BootCount'}
 
 # System states
 #   state can change to next state in 2 ways:
@@ -57,16 +56,15 @@ SYSTEM_STATES = {
         'HOST_POWERED_ON': "PoweringOn",
         'HOST_BOOTING': "PoweringOn",
         'HOST_BOOTED': "On",
-        'HOST_POWERED_OFF': "Off"
-    }
+        'HOST_POWERED_OFF': "Off"}
 
-LED_FUNCTIONS = { 'On': 'setOn',
-                  'Off': 'setOff', 
-                  'BlinkFast': 'setBlinkFast',
-                  'BlinkSlow': 'setBlinkSlow',
-                  'state' : 'GetLedState'}
+LED_FUNCTIONS = {'On': 'setOn',
+                 'Off': 'setOff',
+                 'BlinkFast': 'setBlinkFast',
+                 'BlinkSlow': 'setBlinkSlow',
+                 'state': 'GetLedState'}
 
-LED_TYPE =  ['identify', 'power', 'heartbeat']
+LED_TYPE = ['identify', 'power', 'heartbeat']
 
 INVENTORY_ITEMS = [
         'SYSTEM',
@@ -279,13 +277,13 @@ class ObmcRedfishProviders(object):
                     status = str(pydata[1])
                     if status == 'On':
                         return 'Lit'
-                    else: 
+                    else:
                         return 'Off'
                 else:
                     return pydata
             else:
                 return None
-        else: 
+        else:
             return None
 
 # Not working yet
@@ -315,7 +313,7 @@ class ObmcRedfishProviders(object):
 
 
 # providers = ObmcRedfishProviders()
-# 
+#
 # print providers.get_system_id()
 # print providers.power_control('state')
 # providers.get_system_state()
@@ -324,15 +322,15 @@ class ObmcRedfishProviders(object):
 # # get_host_settings()
 # print 'Number of cores: %d' % providers.get_cpu_core_count()
 # print providers.get_chassis_info()
-# 
+#
 # for inventory_item in INVENTORY_ITEMS:
 #     item = providers.get_inventory(inventory_item)
 #     print ">>>>>>INVENTORY>>>>>>>>>>>>>>>>>>>>>"
 #     providers.print_dict("", item)
-# 
+#
 # for sensors in SENSORS_INFO.keys():
 #     value = providers.get_sensors(sensors)
 #     providers.print_dict("", value)
-# 
+#
 # # get_inventory()
 # # get_sensors()
