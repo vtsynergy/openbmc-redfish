@@ -16,8 +16,6 @@ get_paths = ['redfish',
              'redfish/v1/Systems/0000000000000000',
              'redfish/v1/Chassis']
 
-
-
 for path in get_paths:
     path_list = path.split('/')
     print "-----------------------------"
