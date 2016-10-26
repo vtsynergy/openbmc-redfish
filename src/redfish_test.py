@@ -13,6 +13,7 @@ redfish_root = RedfishBottleRoot()
 get_paths = ['redfish',
              'redfish/v1',
              'redfish/v1/Systems',
+             'redfish/v1/Systems/0000000000000000',
              'redfish/v1/Chassis']
 
 

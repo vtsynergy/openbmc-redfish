@@ -97,14 +97,14 @@ class RedfishBase(object):
         """FIXME: this with correct functions calls in case of error"""
         if op[0] != self.name or len(op) == 0:
             print "Error:" + self.name + str(len(op)) + str(op[0])
-            return "Error"
+            return "Error: Last name did not match" + self.name
         elif len(op) > 1:
             for children in self.child:
                 if children.name == op[1]:
                     op.pop(0)
                     return children.get_export_data(op)
             else:
-                return "Error"
+                return "Error: Child does not exist"
         else:
             if self.static_data_filled == 0:
                 self.fill_static_data()
@@ -205,6 +205,9 @@ class ServiceRoot(RedfishBase):
         self.instance_name = "Root Service"
         """Section: 7.6.2 Human Readable Name, Need not be Unique"""
 
+        self.metadata_path = self.metadata_path + "#" + self.namespace
+
+
     def fill_static_data(self):
         super(ServiceRoot, self).fill_static_data()
 
@@ -216,8 +219,7 @@ class ServiceRoot(RedfishBase):
             self.attrs[children.name] = dict([(ODATA_ID, children.path)])
         uuid = self.provider.get_system_id()
         self.attrs["UUID"] = self.fancy_uuid(uuid)
-        self.attrs[ODATA_CONTEXT] = self.metadata_path + "#" + self.namespace
-
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 class SystemCollection(RedfishCollectionBase):
     """Computer System Collection class"""
@@ -227,12 +229,13 @@ class SystemCollection(RedfishCollectionBase):
         self.instance_id = instance_id
         self.namespace = "ComputerSystemCollection"
         self.version = "ComputerSystemCollection"
+        self.metadata_path = self.metadata_path + "#" + self.name
 
     def fill_static_data(self):
         super(SystemCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs[ODATA_CONTEXT] = self.metadata_path + "#" + self.name
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 
 class ChassisCollection(RedfishCollectionBase):
@@ -243,12 +246,13 @@ class ChassisCollection(RedfishCollectionBase):
         self.instance_id = instance_id
         self.namespace = "ChassisCollection"
         self.version = "ChassisCollection"
+        self.metadata_path = self.metadata_path + "#" + self.name
 
     def fill_static_data(self):
         super(ChassisCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs[ODATA_CONTEXT] = self.metadata_path + "#" + self.name
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 class ChassisInstance(RedfishBase):
     """Chassis Information"""
@@ -257,11 +261,30 @@ class ChassisInstance(RedfishBase):
         super(ChassisInstance, self).__init__(name)
 
 
-class SystemInstance(RedfishBase):
+class System(RedfishBase):
     """System Information"""
 
-    def __init__(self, name):
-        super(SystemInstance, self).__init__(name)
+    def __init__(self, name, argv):
+        super(System, self).__init__(name)
+        self.namespace = "ComputerSystem"
+        self.version = "v1_0_3.ComputerSystem"
+        for keys in argv.keys():
+            if keys is "UUID":
+                uuid = argv[keys].split(':')
+                self.attrs[keys] = self.fancy_uuid(uuid[1])
+            else:
+                self.attrs[keys] = argv[keys].strip()
+
+    def fill_static_data(self):
+        super(System, self).fill_static_data()
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        self.metadata_path = self.parent.metadata_path + "/Members/$entity" 
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
+        self.attrs["Id"] = self.name
+
+    def fill_dynamic_data(self):
+        super(System, self).fill_dynamic_data()
+        print self.provider.get_led_state()
 
 
 class CpuInstance(RedfishBase):
@@ -291,11 +314,15 @@ class RedfishBottleRoot(object):
                                                   "Computer System Collection")
         self.v1.add_child(self.system_collection)
 
-        self.system1 = SystemInstance("abc")
-        self.system_collection.add_child(self.system1)
+        self.chassis_info = self.provider.get_chassis_info()
+        
+        print str(self.chassis_info)
 
-        self.system2 = SystemInstance("def")
-        self.system_collection.add_child(self.system2)
+        self.system = System(self.chassis_info['SerialNumber'], 
+                             self.chassis_info)
+
+        self.system_collection.add_child(self.system)
+
 
     def print_all(self):
         self.root.print_all()

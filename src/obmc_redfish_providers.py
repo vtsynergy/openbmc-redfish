@@ -113,6 +113,9 @@ class ObmcRedfishProviders(object):
                     merged[op] = value
         return merged
 
+    def get_system_count(self):
+        return 2
+
     def find_sensor_value(self, name, object):
         merged = {}
         for op in object:
@@ -206,20 +209,23 @@ class ObmcRedfishProviders(object):
         return len(cores)
 
     def get_chassis_info(self):
+        """Return a dictonary containng SerialNumber, UUID, PartNumber, and
+        Name"""
         info = {}
         item = self.get_inventory('MEMORY_BUFFER')
         for chassis, detail in item.items():
             for key, value in detail.items():
+                val = str(value)
                 if key == 'Custom Field 1':
-                    info['Id'] = str(value)
+                    info['UUID'] = val
                 elif key == 'Manufacturer':
-                    info['Manufacturer'] = str(value)
+                    info['Manufacturer'] = val
                 elif key == 'Name':
-                    info['Model'] = str(value)
+                    info['Model'] = val
                 elif key == 'Part Number':
-                    info['PartNumber'] = str(value)
+                    info['PartNumber'] = val
                 elif key == 'Serial Number':
-                    info['SerialNumber'] = str(value)
+                    info['SerialNumber'] = val
         return info
 
     def power_control(self, name):
@@ -261,7 +267,7 @@ class ObmcRedfishProviders(object):
         data = intf.GetAll('org.openbmc.settings.Host')
         self.fix_byte(data, None, None)
         pydata = json.loads(json.dumps(data))
-        print pydata
+        return pydata
 
     def set_max_fan_speed(self):
         obj = self.bus.get_object('org.openbmc.control.Fans',
