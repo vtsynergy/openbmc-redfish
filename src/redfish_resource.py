@@ -18,6 +18,7 @@ REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
                       "copyright policy, see "
                       "http://www.dmtf.org/about/policies/copyright.")
 
+REDFISH_SCHEMA_WEB_LINK = "http://redfish.dmtf.org/schemas/v1"
 ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
@@ -61,6 +62,19 @@ class RedfishBase(object):
 
         self.version = ""
 
+    def get_redfish_web_link(self):
+        """Returns the link of online schema at redfish website, use it to
+        create metadata document"""
+        path_list = self.version.split(".")
+        if len(path_list) == 1:
+            path_list[0] = ""
+        else: 
+            path_list[0] = path_list[0] + "." 
+
+        web_link = (REDFISH_SCHEMA_WEB_LINK + "/" + self.namespace + 
+                    "." + path_list[0] + "json")
+        return web_link
+
     def update_metadata_path(self):
         self.self_metadata_path = (self.parent.child_metadata_path + 
                                    "$entity")
@@ -96,6 +110,7 @@ class RedfishBase(object):
         function in inherited classes to update the information"""
         self.attrs[ODATA_CONTEXT] = self.self_metadata_path
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -346,11 +361,13 @@ class ProcessorCollection(RedfishCollectionBase):
         self.attrs["Name"] = self.instance_id
 
 
-class CpuInstance(RedfishBase):
+class Processor(RedfishBase):
     """CPU Information"""
 
-    def __init__(self, name):
-        super(CpuInstance, self).__init__(name)
+    def __init__(self, name, instance_id, argv):
+        super(Processor, self).__init__(name)
+        self.namespace = "Processor"
+        self.version = "v1_0_2.Processor"
 
 
 class RedfishBottleRoot(object):
