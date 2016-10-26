@@ -57,6 +57,10 @@ class RedfishBase(object):
 
         self.child_metadata_path = ""
 
+        self.namespace = "" 
+
+        self.version = ""
+
     def update_metadata_path(self):
         self.self_metadata_path = (self.parent.child_metadata_path + 
                                    "$entity")
@@ -91,6 +95,7 @@ class RedfishBase(object):
         """Fill the static attributes of attrs dictonary at build. Extend this
         function in inherited classes to update the information"""
         self.attrs[ODATA_CONTEXT] = self.self_metadata_path
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -260,7 +265,6 @@ class SystemCollection(RedfishCollectionBase):
     def fill_static_data(self):
         super(SystemCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
-        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
 
 
 class ChassisCollection(RedfishCollectionBase):
@@ -275,7 +279,6 @@ class ChassisCollection(RedfishCollectionBase):
     def fill_static_data(self):
         super(ChassisCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
-        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
 
 
 class ChassisInstance(RedfishBase):
@@ -301,7 +304,6 @@ class System(RedfishBase):
 
     def fill_static_data(self):
         super(System, self).fill_static_data()
-        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
         self.attrs["Id"] = self.name
         self.attrs["SystemType"] = self.provider.get_system_type()
         self.add_action("Reset", ['On',
@@ -342,7 +344,6 @@ class ProcessorCollection(RedfishCollectionBase):
     def fill_static_data(self):
         super(ProcessorCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
-        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
 
 
 class CpuInstance(RedfishBase):
