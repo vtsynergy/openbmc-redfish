@@ -240,11 +240,6 @@ class ObmcRedfishProviders(object):
                                   '/org/openbmc/control/chassis0')
         intf = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
         props = intf.GetAll('org.openbmc.control.Chassis')
-        intf = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
-        data = intf.GetManagedObjects()
-        self.fix_byte(data, None, None)
-        pydata = json.loads(json.dumps(data))
-        print pydata
         for p in props:
             if p == 'uuid':
                 return str(props[p])

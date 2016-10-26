@@ -18,6 +18,9 @@ REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
                       "copyright policy, see "
                       "http://www.dmtf.org/about/policies/copyright.")
 
+ODATA_ID = "@odata.id"
+ODATA_TYPE = "@odata.type"
+ODATA_CONTEXT = "@odata.context"
 
 class RedfishBase(object):
     """Base class for Redfish Obejcts"""
@@ -47,12 +50,16 @@ class RedfishBase(object):
 
         self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
 
+        self.metadata_path = "/redfish/v1/$metadata"
+        """Hardcoded the above, need to get it updated when adding metadata
+        functionality"""
+
     def add_child(self, obj):
         """Add a child to the node"""
         self.child.append(obj)
         obj.path = str(self.path + "/" + obj.name)
         obj.parent = self
-        obj.attrs["@odata.id"] = obj.path
+        obj.attrs[ODATA_ID] = obj.path
         obj.provider = self.provider
 
     def print_attr(self):
@@ -102,6 +109,7 @@ class RedfishBase(object):
                 self.fill_static_data()
                 self.static_data_filled = 1
             self.fill_dynamic_data()
+            print "Returning" + str(op)
             return json.dumps(self.attrs)
 
     def action(self, path, op):
@@ -198,11 +206,12 @@ class ServiceRoot(RedfishBase):
         self.attrs["Id"] = self.instance_id
         self.attrs["Name"] = self.instance_name
         self.attrs["RedfishVersion"] = REDFISH_VERSION
-        self.attrs["@odata.type"] = "#" + self.namespace + "." + self.version
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
         for children in self.child:
-            self.attrs[children.name] = dict([("@odata.id",children.path)])
+            self.attrs[children.name] = dict([(ODATA_ID,children.path)])
         uuid = self.provider.get_system_id()
         self.attrs["UUID"] = self.fancy_uuid(uuid)
+        self.attrs[ODATA_CONTEXT] = self.metadata_path +"#" + self.namespace
 
 
 class ChassisManager(RedfishCollectionBase):
