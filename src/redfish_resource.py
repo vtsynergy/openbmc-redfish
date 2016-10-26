@@ -142,6 +142,14 @@ class RedfishBase(object):
     def add_action(self, act, op):
         if(isinstance(op, list)):
             self.actions[act] = op
+            suffix = self.namespace + "." + act
+            key = "#" + suffix
+            target = self.path + "/Actions/" + suffix
+            allowed_values = act + "Type@Redfish.AllowableValues"
+            if 'Actions' not in self.attrs:
+                self.attrs['Actions'] = {}
+            self.attrs['Actions'][key] = dict([('target', target),
+                                             (allowed_values, op)])
         else:
             print "Error: Pass a list"
 
@@ -281,6 +289,26 @@ class System(RedfishBase):
         self.metadata_path = self.parent.metadata_path + "/Members/$entity" 
         self.attrs[ODATA_CONTEXT] = self.metadata_path
         self.attrs["Id"] = self.name
+        self.attrs["SystemType"] = self.provider.get_system_type()
+        self.add_action("Reset", ['On', 
+                                  'ForceOff',
+                                  'GracefulShutDown', 
+                                  'ForceRestart'
+                                  'GracefulRestart' 
+                                 ])
+        self.add_action("LedUpdate", ['On',
+                                      'Off',
+                                      'BlinkFast',
+                                      'BlinkSlow'
+                                      ])
+    
+    def reset(self, op):
+        self.provider.power_control(op)
+
+    
+    def ledupdate(self,op):
+        self.provider.led_operation(op, 'identify')
+
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
@@ -289,6 +317,9 @@ class System(RedfishBase):
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
 
+
+
+#       self.provider.get_host_settings()
 #        Have put here for reference. Would remove it
 #        print self.provider.led_operation('On', 'identify')
 #        print self.provider.led_operation('On', 'heartbeat')

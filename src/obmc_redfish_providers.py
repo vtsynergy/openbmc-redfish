@@ -21,11 +21,11 @@ import dbus
 # from bottle import route, run, template, get, post
 
 
-POWER_CONTROL = {'on': 'powerOn',
-                 'off': 'powerOff',
-                 'soft_off': 'softPowerOff',
-                 'reboot': 'reboot',
-                 'soft_reboot':  'softReboot',
+POWER_CONTROL = {'On': 'powerOn',
+                 'ForceOff': 'powerOff',
+                 'GracefulShutDown': 'softPowerOff',
+                 'ForceRestart': 'reboot',
+                 'GracefulRestart': 'softReboot',
                  'state': 'getPowerState'
                  }
 
@@ -183,6 +183,10 @@ class ObmcRedfishProviders(object):
 # del sensor_values['units']
         return sensor_values
 
+    def get_system_type(self):
+        """Refer to the Redfish Specification for available types"""
+        return "Physical"
+
     def get_system_state(self):
         obj = self.bus.get_object('org.openbmc.managers.System',
                                   '/org/openbmc/managers/System')
@@ -292,7 +296,7 @@ class ObmcRedfishProviders(object):
         data = intf.GetAll('org.openbmc.settings.Host')
         self.fix_byte(data, None, None)
         pydata = json.loads(json.dumps(data))
-        return pydata
+        print pydata
 
     def set_max_fan_speed(self):
         obj = self.bus.get_object('org.openbmc.control.Fans',
