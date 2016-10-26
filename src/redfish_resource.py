@@ -284,8 +284,19 @@ class System(RedfishBase):
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
-        print self.provider.get_led_state()
+        led_state = self.provider.led_operation('state', 'identify')
+        if led_state is not None:
+            self.attrs['IndicatorLed'] = led_state
+        self.attrs['PowerState'] = self.provider.get_system_state()
 
+#        Have put here for reference. Would remove it
+#        print self.provider.led_operation('On', 'identify')
+#        print self.provider.led_operation('On', 'heartbeat')
+#        print self.provider.led_operation('On', 'power')
+#        print self.provider.led_operation('state', 'identify')
+#        print self.provider.led_operation('state', 'heartbeat')
+#        print self.provider.led_operation('state', 'power')
+#
 
 class CpuInstance(RedfishBase):
     """CPU Information"""

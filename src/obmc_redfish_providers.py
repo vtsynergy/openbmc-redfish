@@ -49,16 +49,24 @@ SENSORS_INFO = {
 #   state can change to next state in 2 ways:
 #   - a process emits a GotoSystemState signal with state name to goto
 #   - objects specified in EXIT_STATE_DEPEND have started
-SYSTEM_STATES = [
-    'BASE_APPS',
-    'BMC_STARTING',
-    'BMC_READY',
-    'HOST_POWERING_ON',
-    'HOST_POWERED_ON',
-    'HOST_BOOTING',
-    'HOST_BOOTED',
-    'HOST_POWERED_OFF',
-]
+SYSTEM_STATES = {
+        'BASE_APPS': "Off",
+        'BMC_STARTING': "Off",
+        'BMC_READY': "Off",
+        'HOST_POWERING_ON': "PoweringOn",
+        'HOST_POWERED_ON': "PoweringOn",
+        'HOST_BOOTING': "PoweringOn",
+        'HOST_BOOTED': "On",
+        'HOST_POWERED_OFF': "Off"
+    }
+
+LED_FUNCTIONS = { 'On': 'setOn',
+                  'Off': 'setOff', 
+                  'BlinkFast': 'setBlinkFast',
+                  'BlinkSlow': 'setBlinkSlow',
+                  'state' : 'GetLedState'}
+
+LED_TYPE =  ['identify', 'power', 'heartbeat']
 
 INVENTORY_ITEMS = [
         'SYSTEM',
@@ -185,7 +193,7 @@ class ObmcRedfishProviders(object):
             data = mthd()
             self.fix_byte(data, None, None)
             pydata = json.loads(json.dumps(data))
-            print pydata
+            return SYSTEM_STATES[pydata]
         except Exception as e:
             print e
 
@@ -250,14 +258,31 @@ class ObmcRedfishProviders(object):
             if p == 'uuid':
                 return str(props[p])
 
-    def get_led_state(self):
-        obj = self.bus.get_object('org.openbmc.control.led',
-                                  '/org/openbmc/control/led/identify')
-        intf = dbus.Interface(obj, 'org.openbmc.Led')
-        data = intf.GetLedState()
-        self.fix_byte(data, None, None)
-        pydata = json.loads(json.dumps(data))
-        print pydata
+    def led_operation(self, op, led_type):
+        if led_type in LED_TYPE:
+            interface = '/org/openbmc/control/led/' + str(led_type)
+            obj = self.bus.get_object('org.openbmc.control.led',
+                                      interface)
+            intf = dbus.Interface(obj, 'org.openbmc.Led')
+            mthd = getattr(intf, LED_FUNCTIONS[op])
+            try:
+                data = mthd()
+            except Exception as e:
+                print e
+            if data is not None:
+                pydata = json.loads(json.dumps(data))
+                if (isinstance(pydata, list)):
+                    status = str(pydata[1])
+                    if status == 'On':
+                        return 'Lit'
+                    else: 
+                        return 'Off'
+                else:
+                    return pydata
+            else:
+                return None
+        else: 
+            return None
 
 # Not working yet
     def get_host_settings(self):
@@ -289,7 +314,6 @@ class ObmcRedfishProviders(object):
 # 
 # print providers.get_system_id()
 # print providers.power_control('state')
-# print providers.get_led_state()
 # providers.get_system_state()
 # providers.get_fan_speed()
 # providers.get_cpu_info()
