@@ -22,6 +22,7 @@ ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
 
+
 class RedfishBase(object):
     """Base class for Redfish Obejcts"""
 
@@ -81,7 +82,7 @@ class RedfishBase(object):
         """Fill the static attributes of attrs dictonary at build. Extend this
         function in inherited classes to update the information"""
         pass
-        
+
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
         is recieved. Extend in inherited classes"""
@@ -96,14 +97,14 @@ class RedfishBase(object):
         """FIXME: this with correct functions calls in case of error"""
         if op[0] != self.name or len(op) == 0:
             print "Error:" + self.name + str(len(op)) + str(op[0])
-            return "Error"
+            return "Error: Last name did not match" + self.name
         elif len(op) > 1:
             for children in self.child:
                 if children.name == op[1]:
                     op.pop(0)
                     return children.get_export_data(op)
             else:
-                return "Error"
+                return "Error: Child does not exist"
         else:
             if self.static_data_filled == 0:
                 self.fill_static_data()
@@ -138,9 +139,17 @@ class RedfishBase(object):
                 print uri_namespace + action + str(op.POST.items())
                 return
 
-    def add_action(self, act, op): 
+    def add_action(self, act, op):
         if(isinstance(op, list)):
             self.actions[act] = op
+            suffix = self.namespace + "." + act
+            key = "#" + suffix
+            target = self.path + "/Actions/" + suffix
+            allowed_values = act + "Type@Redfish.AllowableValues"
+            if 'Actions' not in self.attrs:
+                self.attrs['Actions'] = {}
+            self.attrs['Actions'][key] = dict([('target', target),
+                                             (allowed_values, op)])
         else:
             print "Error: Pass a list"
 
@@ -148,11 +157,9 @@ class RedfishBase(object):
         op = op.upper()
         while len(op) < 32:
             op = "0" + op
-        res = (op[0:8] + "-" + op[8:12] + "-" + op[12:16] + "-" + op[16:20] + 
+        res = (op[0:8] + "-" + op[8:12] + "-" + op[12:16] + "-" + op[16:20] +
                "-" + op[20:32])
         return res
-
-
 
 
 class RedfishCollectionBase(RedfishBase):
@@ -165,6 +172,12 @@ class RedfishCollectionBase(RedfishBase):
     def add_child(self, obj):
         super(RedfishCollectionBase, self).add_child(obj)
         self.attrs["Members@odata.count"] += 1
+
+    def fill_static_data(self):
+        super(RedfishCollectionBase,self).fill_static_data()
+        self.attrs["Members"] = []
+        for children in self.child:
+            self.attrs["Members"].append(dict([(ODATA_ID, children.path)]))
 
 
 class RedfishRoot(RedfishBase):
@@ -191,7 +204,7 @@ class ServiceRoot(RedfishBase):
         self.namespace = "ServiceRoot"
         """Namespace for ServiceRoot"""
 
-        self.instance_id = instance_id;
+        self.instance_id = instance_id
         """Section: 7.6.1 Id for the resourse. Shall be unique """
 
         self.version = "v1_0_3.ServiceRoot"
@@ -200,26 +213,54 @@ class ServiceRoot(RedfishBase):
         self.instance_name = "Root Service"
         """Section: 7.6.2 Human Readable Name, Need not be Unique"""
 
+        self.metadata_path = self.metadata_path + "#" + self.namespace
+
+
     def fill_static_data(self):
-        super(ServiceRoot,self).fill_static_data()
+        super(ServiceRoot, self).fill_static_data()
 
         self.attrs["Id"] = self.instance_id
         self.attrs["Name"] = self.instance_name
         self.attrs["RedfishVersion"] = REDFISH_VERSION
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
         for children in self.child:
-            self.attrs[children.name] = dict([(ODATA_ID,children.path)])
+            self.attrs[children.name] = dict([(ODATA_ID, children.path)])
         uuid = self.provider.get_system_id()
         self.attrs["UUID"] = self.fancy_uuid(uuid)
-        self.attrs[ODATA_CONTEXT] = self.metadata_path +"#" + self.namespace
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
+
+class SystemCollection(RedfishCollectionBase):
+    """Computer System Collection class"""
+
+    def __init__(self, name, instance_id):
+        super(SystemCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "ComputerSystemCollection"
+        self.version = "ComputerSystemCollection"
+        self.metadata_path = self.metadata_path + "#" + self.name
+
+    def fill_static_data(self):
+        super(SystemCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 
-class ChassisManager(RedfishCollectionBase):
-    """Chassis Manager"""
+class ChassisCollection(RedfishCollectionBase):
+    """Chassis Collection"""
 
-    def __init__(self, name):
-        super(ChassisManager, self).__init__(name)
+    def __init__(self, name, instance_id):
+        super(ChassisCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "ChassisCollection"
+        self.version = "ChassisCollection"
+        self.metadata_path = self.metadata_path + "#" + self.name
 
+    def fill_static_data(self):
+        super(ChassisCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 class ChassisInstance(RedfishBase):
     """Chassis Information"""
@@ -228,12 +269,65 @@ class ChassisInstance(RedfishBase):
         super(ChassisInstance, self).__init__(name)
 
 
-class SystemInstance(RedfishBase):
+class System(RedfishBase):
     """System Information"""
 
-    def __init__(self, name):
-        super(SystemInstance, self).__init__(name)
+    def __init__(self, name, argv):
+        super(System, self).__init__(name)
+        self.namespace = "ComputerSystem"
+        self.version = "v1_0_3.ComputerSystem"
+        for keys in argv.keys():
+            if keys is "UUID":
+                uuid = argv[keys].split(':')
+                self.attrs[keys] = self.fancy_uuid(uuid[1])
+            else:
+                self.attrs[keys] = argv[keys].strip()
 
+    def fill_static_data(self):
+        super(System, self).fill_static_data()
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        self.metadata_path = self.parent.metadata_path + "/Members/$entity" 
+        self.attrs[ODATA_CONTEXT] = self.metadata_path
+        self.attrs["Id"] = self.name
+        self.attrs["SystemType"] = self.provider.get_system_type()
+        self.add_action("Reset", ['On', 
+                                  'ForceOff',
+                                  'GracefulShutDown', 
+                                  'ForceRestart'
+                                  'GracefulRestart' 
+                                 ])
+        self.add_action("LedUpdate", ['On',
+                                      'Off',
+                                      'BlinkFast',
+                                      'BlinkSlow'
+                                      ])
+    
+    def reset(self, op):
+        self.provider.power_control(op)
+
+    
+    def ledupdate(self,op):
+        self.provider.led_operation(op, 'identify')
+
+
+    def fill_dynamic_data(self):
+        super(System, self).fill_dynamic_data()
+        led_state = self.provider.led_operation('state', 'identify')
+        if led_state is not None:
+            self.attrs['IndicatorLed'] = led_state
+        self.attrs['PowerState'] = self.provider.get_system_state()
+
+
+
+#       self.provider.get_host_settings()
+#        Have put here for reference. Would remove it
+#        print self.provider.led_operation('On', 'identify')
+#        print self.provider.led_operation('On', 'heartbeat')
+#        print self.provider.led_operation('On', 'power')
+#        print self.provider.led_operation('state', 'identify')
+#        print self.provider.led_operation('state', 'heartbeat')
+#        print self.provider.led_operation('state', 'power')
+#
 
 class CpuInstance(RedfishBase):
     """CPU Information"""
@@ -254,8 +348,23 @@ class RedfishBottleRoot(object):
         self.v1 = ServiceRoot("v1", "RootService")
         self.root.add_child(self.v1)
 
-        self.chassis_m = ChassisManager("Chassis")
-        self.v1.add_child(self.chassis_m)
+        self.chassis_collection = ChassisCollection("Chassis",
+                                           "Chassis Collection")
+        self.v1.add_child(self.chassis_collection)
+
+        self.system_collection = SystemCollection("Systems",
+                                                  "Computer System Collection")
+        self.v1.add_child(self.system_collection)
+
+        self.chassis_info = self.provider.get_chassis_info()
+        
+        print str(self.chassis_info)
+
+        self.system = System(self.chassis_info['SerialNumber'], 
+                             self.chassis_info)
+
+        self.system_collection.add_child(self.system)
+
 
     def print_all(self):
         self.root.print_all()
