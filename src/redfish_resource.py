@@ -51,9 +51,17 @@ class RedfishBase(object):
 
         self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
 
-        self.metadata_path = "/redfish/v1/$metadata"
+        self.self_metadata_path = ""
         """Hardcoded the above, need to get it updated when adding metadata
         functionality"""
+
+        self.child_metadata_path = ""
+
+    def update_metadata_path(self):
+        self.self_metadata_path = (self.parent.child_metadata_path + 
+                                   "$entity")
+        self.child_metadata_path = (self.parent.self_metadata_path + 
+                                    "/" + self.name + "/")
 
     def add_child(self, obj):
         """Add a child to the node"""
@@ -62,6 +70,7 @@ class RedfishBase(object):
         obj.parent = self
         obj.attrs[ODATA_ID] = obj.path
         obj.provider = self.provider
+        obj.update_metadata_path()
 
     def print_attr(self):
         """debug function for printing values"""
@@ -81,7 +90,7 @@ class RedfishBase(object):
     def fill_static_data(self):
         """Fill the static attributes of attrs dictonary at build. Extend this
         function in inherited classes to update the information"""
-        pass
+        self.attrs[ODATA_CONTEXT] = self.self_metadata_path
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -179,6 +188,11 @@ class RedfishCollectionBase(RedfishBase):
         for children in self.child:
             self.attrs["Members"].append(dict([(ODATA_ID, children.path)]))
 
+    def update_metadata_path(self):
+        self.self_metadata_path = (self.parent.child_metadata_path + 
+                                   self.name)
+        self.child_metadata_path = self.self_metadata_path + "/Members/"
+
 
 class RedfishRoot(RedfishBase):
     """Root object for redfish, located at 'redfish'"""
@@ -187,6 +201,8 @@ class RedfishRoot(RedfishBase):
         super(RedfishRoot, self).__init__(name)
         self.path = str("/" + name)
         self.provider = provider
+        self.child_metadata_path = self.path 
+        self.self_metadata_path = self.path 
 
     def add_child(self, ob):
         """When adding child for root, delete all the attributes"""
@@ -194,6 +210,9 @@ class RedfishRoot(RedfishBase):
         for key in self.attrs.keys():
             del self.attrs[key]
         self.attrs[ob.name] = ob.path
+
+    def fill_static_data(self):
+        pass
 
 
 class ServiceRoot(RedfishBase):
@@ -213,11 +232,12 @@ class ServiceRoot(RedfishBase):
         self.instance_name = "Root Service"
         """Section: 7.6.2 Human Readable Name, Need not be Unique"""
 
-        self.metadata_path = self.metadata_path + "#" + self.namespace
+    def update_metadata_path(self):
+        self.child_metadata_path = self.path + "/$metadata#"
+        self.self_metadata_path = self.child_metadata_path + self.namespace
 
     def fill_static_data(self):
         super(ServiceRoot, self).fill_static_data()
-
         self.attrs["Id"] = self.instance_id
         self.attrs["Name"] = self.instance_name
         self.attrs["RedfishVersion"] = REDFISH_VERSION
@@ -226,7 +246,6 @@ class ServiceRoot(RedfishBase):
             self.attrs[children.name] = dict([(ODATA_ID, children.path)])
         uuid = self.provider.get_system_id()
         self.attrs["UUID"] = self.fancy_uuid(uuid)
-        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 
 class SystemCollection(RedfishCollectionBase):
@@ -237,13 +256,11 @@ class SystemCollection(RedfishCollectionBase):
         self.instance_id = instance_id
         self.namespace = "ComputerSystemCollection"
         self.version = "ComputerSystemCollection"
-        self.metadata_path = self.metadata_path + "#" + self.name
 
     def fill_static_data(self):
         super(SystemCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 
 class ChassisCollection(RedfishCollectionBase):
@@ -254,13 +271,11 @@ class ChassisCollection(RedfishCollectionBase):
         self.instance_id = instance_id
         self.namespace = "ChassisCollection"
         self.version = "ChassisCollection"
-        self.metadata_path = self.metadata_path + "#" + self.name
 
     def fill_static_data(self):
         super(ChassisCollection, self).fill_static_data()
         self.attrs["Name"] = self.instance_id
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs[ODATA_CONTEXT] = self.metadata_path
 
 
 class ChassisInstance(RedfishBase):
@@ -287,8 +302,6 @@ class System(RedfishBase):
     def fill_static_data(self):
         super(System, self).fill_static_data()
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.metadata_path = self.parent.metadata_path + "/Members/$entity"
-        self.attrs[ODATA_CONTEXT] = self.metadata_path
         self.attrs["Id"] = self.name
         self.attrs["SystemType"] = self.provider.get_system_type()
         self.add_action("Reset", ['On',
@@ -300,6 +313,8 @@ class System(RedfishBase):
                                       'Off',
                                       'BlinkFast',
                                       'BlinkSlow'])
+        for children in self.child:
+            self.attrs[children.name] = dict([(ODATA_TYPE, children.path)])
 
     def reset(self, op):
         self.provider.power_control(op)
@@ -313,6 +328,21 @@ class System(RedfishBase):
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
+
+
+class ProcessorCollection(RedfishCollectionBase):
+    """Class for Collection of Processors"""
+
+    def __init__(self, name, instance_id):
+        super(ProcessorCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "ProcessorCollection"
+        self.version = "ProcessorCollection"
+
+    def fill_static_data(self):
+        super(ProcessorCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
 
 
 class CpuInstance(RedfishBase):
@@ -350,6 +380,11 @@ class RedfishBottleRoot(object):
                              self.chassis_info)
 
         self.system_collection.add_child(self.system)
+
+        self.processors = ProcessorCollection("Processors", 
+                                              "Processors Collection")
+
+        self.system.add_child(self.processors)
 
     def print_all(self):
         self.root.print_all()
