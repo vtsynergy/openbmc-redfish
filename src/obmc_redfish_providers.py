@@ -399,12 +399,3 @@ class ObmcRedfishProviders(object):
         self.fix_byte(data, None, None)
         pydata = json.loads(json.dumps(data))
         print pydata
-
-
-# providers.get_fan_speed()
-# providers.get_cpu_info()
-#
-# for sensors in SENSORS_INFO.keys():
-#     value = providers.get_sensors(sensors)
-#     providers.print_dict("", value)
-#

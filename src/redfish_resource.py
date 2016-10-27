@@ -497,6 +497,12 @@ class RedfishBottleRoot(object):
 
         self.index = 0
 
+#       Experimental code for sensors. Would remove this later
+#        self.provider.get_fan_speed()
+#        for sensors in SENSORS_INFO.keys():
+#            value = self.provider.get_sensors(sensors)
+#            self.provider.print_dict("", value)
+
     def print_all(self):
         self.root.print_all()
 
