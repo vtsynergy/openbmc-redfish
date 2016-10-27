@@ -204,6 +204,52 @@ class ObmcRedfishProviders(object):
         except Exception as e:
             print e
 
+    def get_dimm_info(self):
+        """Return a dictonary of DIMMs with fields set as per Redfish
+        specification"""
+        info = {}
+        item = self.get_inventory('DIMM')
+        for dimm in item.keys():
+            dimm = str(dimm)
+            path_list = dimm.split("/")
+            dimm_inst = path_list[-1].upper()
+            info[dimm_inst] = {}
+            for key in item[dimm].keys():
+                value = str(item[dimm][key])
+                if key == 'Manufacturer':
+                    info[dimm_inst]['Manufacturer'] = value
+                elif key == 'fru_type':
+                    info[dimm_inst]['MemoryType'] = "DRAM"
+                elif key == 'Serial Number':
+                    info[dimm_inst]['SerialNumber'] = value
+                elif key == 'Part Number':
+                    info[dimm_inst]['PartNumber'] = value
+                elif key == "Name":
+                    info[dimm_inst]["Name"] = value
+                elif key == 'present':
+                    if value == 'True':
+                        info[dimm_inst]['Status'] = dict([("State", "Enabled"),
+                                                         ("Health", "Ok")])
+        return info
+
+    def get_pcie_info(self):
+        """Return a dictonary of PCIeDevices with fields set as per Redfish
+        specification"""
+        info = {}
+        item = self.get_inventory('PCIE_CARD')
+        for pcie in item.keys():
+            pcie = str(pcie)
+            path_list = pcie.split("/")
+            pcie_inst = path_list[-1].upper()
+            info[pcie_inst] = {}
+            for key in item[pcie].keys():
+                value = str(item[pcie][key])
+                if key == 'present':
+                    if value == "True":
+                        info[pcie_inst]['Status'] = dict([("State", "Enabled"),
+                                                         ("Health", "Ok")])
+        return info
+
     def get_cpu_info(self):
         """Returns a dictonary of CPUs with fields set as per Redfish
         Specification"""
@@ -250,6 +296,16 @@ class ObmcRedfishProviders(object):
                     if key == 'present' and value == 'True':
                         cores.append('core')
         return len(cores)
+
+    def get_bios_version(self):
+        item = self.get_inventory('SYSTEM')
+        for system in item.keys():
+            system_list = system.split("/")
+            system_list[-1] = system_list[-1].upper()
+            if system_list[-1] == 'SYSTEM':
+                for keys in item[system]:
+                    if keys == "Version":
+                        return str(item[system][keys])
 
     def get_chassis_info(self):
         """Return a dictonary containng SerialNumber, UUID, PartNumber, and

@@ -39,9 +39,6 @@ class RedfishBase(object):
         """Dictonary for action, key=Function, value = List of allowable
         values"""
 
-        self.related_object = []
-        """List of related objects"""
-
         self.name = name
         """name for the class that specifies the Path to resource"""
 
@@ -117,9 +114,13 @@ class RedfishBase(object):
         is recieved. Extend in inherited classes"""
         pass
 
-    def add_related_object(self, obj):
+    def add_related_object(self, name, obj):
         """Add a related object to this item"""
-        self.related_object.append(obj)
+        if "Links" not in self.attrs:
+            self.attrs["Links"] = {}
+        if name not in self.attrs["Links"]:
+            self.attrs["Links"][name] = []
+        self.attrs["Links"][name].append(dict([(ODATA_ID, obj.path)]))
 
     def get_export_data(self, op):
         """Export the json data to server"""
@@ -296,11 +297,36 @@ class ChassisCollection(RedfishCollectionBase):
         self.attrs["Name"] = self.instance_id
 
 
-class ChassisInstance(RedfishBase):
+class Chassis(RedfishBase):
     """Chassis Information"""
 
-    def __init__(self, name):
-        super(ChassisInstance, self).__init__(name)
+    def __init__(self, name, argv):
+        super(Chassis, self).__init__(name)
+        self.namespace = "Chassis"
+        self.version = "v1_0_3.Chassis"
+        for keys in argv.keys():
+            if keys is not "UUID":
+                self.attrs[keys] = argv[keys].strip()
+
+    def fill_static_data(self):
+        super(Chassis, self).fill_static_data()
+        self.attrs["Id"] = self.name
+        self.add_action("LedUpdate", ['On',
+                                      'Off',
+                                      'BlinkFast',
+                                      'BlinkSlow'])
+        for children in self.child:
+            self.attrs[children.name] = dict([(ODATA_TYPE, children.path)])
+
+    def ledupdate(self, op):
+        self.provider.led_operation(op, 'identify')
+
+    def fill_dynamic_data(self):
+        super(Chassis, self).fill_dynamic_data()
+        led_state = self.provider.led_operation('state', 'identify')
+        if led_state is not None:
+            self.attrs['IndicatorLed'] = led_state
+        self.attrs['PowerState'] = self.provider.get_system_state()
 
 
 class System(RedfishBase):
@@ -321,6 +347,7 @@ class System(RedfishBase):
         super(System, self).fill_static_data()
         self.attrs["Id"] = self.name
         self.attrs["SystemType"] = self.provider.get_system_type()
+        self.attrs["BiosVerion"] = self.provider.get_bios_version()
         self.add_action("Reset", ['On',
                                   'ForceOff',
                                   'GracefulShutDown',
@@ -368,9 +395,36 @@ class Processor(RedfishBase):
         super(Processor, self).__init__(name)
         self.namespace = "Processor"
         self.version = "v1_0_2.Processor"
+        self.attrs["Id"] = name
         for keys in argv.keys():
             if keys == 'UUID':
                 argv[keys] = self.fancy_uuid(argv[keys])
+            self.attrs[keys] = argv[keys]
+
+
+class MemoryCollection(RedfishCollectionBase):
+    """Class for Collection of Memorys"""
+
+    def __init__(self, name, instance_id):
+        super(MemoryCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "MemoryCollection"
+        self.version = "MemoryCollection"
+
+    def fill_static_data(self):
+        super(MemoryCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+
+
+class Memory(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name, argv):
+        super(Memory, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Memory"
+        self.version = "v1_0_0.Memory"
+        for keys in argv.keys():
             self.attrs[keys] = argv[keys]
 
 
@@ -401,10 +455,21 @@ class RedfishBottleRoot(object):
 
         self.system_collection.add_child(self.system)
 
+        self.chassis = Chassis("1U", self.chassis_info)
+
+        self.chassis_collection.add_child(self.chassis)
+
+        self.chassis.add_related_object("ComputerSystems", self.system)
+
         self.processors = ProcessorCollection("Processors",
                                               "Processors Collection")
 
         self.system.add_child(self.processors)
+
+        self.memories = MemoryCollection("Memory",
+                                         "Memory Collection")
+
+        self.system.add_child(self.memories)
 
         self.processor_list = []
 
@@ -416,6 +481,18 @@ class RedfishBottleRoot(object):
             self.processor_list.append(Processor(keys,
                                        self.processor_dict[keys]))
             self.processors.add_child(self.processor_list[self.index])
+            self.index = self.index + 1
+
+        self.index = 0
+
+        self.memory_list = []
+
+        self.memory_dict = self.provider.get_dimm_info()
+
+        for keys in self.memory_dict.keys():
+            self.memory_list.append(Memory(keys,
+                                    self.memory_dict[keys]))
+            self.memories.add_child(self.memory_list[self.index])
             self.index = self.index + 1
 
         self.index = 0
