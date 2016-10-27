@@ -364,10 +364,14 @@ class ProcessorCollection(RedfishCollectionBase):
 class Processor(RedfishBase):
     """CPU Information"""
 
-    def __init__(self, name, instance_id, argv):
+    def __init__(self, name, argv):
         super(Processor, self).__init__(name)
         self.namespace = "Processor"
         self.version = "v1_0_2.Processor"
+        for keys in argv.keys():
+            if keys == 'UUID':
+                argv[keys] = self.fancy_uuid(argv[keys])
+            self.attrs[keys] = argv[keys]
 
 
 class RedfishBottleRoot(object):
@@ -392,8 +396,6 @@ class RedfishBottleRoot(object):
 
         self.chassis_info = self.provider.get_chassis_info()
 
-        print str(self.chassis_info)
-
         self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
 
@@ -403,6 +405,20 @@ class RedfishBottleRoot(object):
                                               "Processors Collection")
 
         self.system.add_child(self.processors)
+
+        self.processor_list = []
+
+        self.processor_dict = self.provider.get_cpu_info()
+
+        self.index = 0
+
+        for keys in self.processor_dict.keys():
+            self.processor_list.append(Processor(keys,
+                                      self.processor_dict[keys]))
+            self.processors.add_child(self.processor_list[self.index])
+            self.index = self.index + 1
+
+        self.index = 0
 
     def print_all(self):
         self.root.print_all()

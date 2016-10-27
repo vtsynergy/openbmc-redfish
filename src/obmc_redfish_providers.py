@@ -87,6 +87,8 @@ class ObmcRedfishProviders(object):
         """Initialize the class"""
         self.bus = dbus.SystemBus()
 
+        self.inventory_data = None
+
     def fix_byte(self, it, key, parent):
         if (isinstance(it, dbus.Array)):
             for i in range(0, len(it)):
@@ -141,18 +143,21 @@ class ObmcRedfishProviders(object):
             print name+" = "+str(data)
 
     def get_inventory(self, name):
-        obj = self.bus.get_object('org.openbmc.Inventory',
-                                  '/org/openbmc/inventory')
-        intf = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
-        mthd = obj.get_dbus_method("GetManagedObjects",
-                                   'org.freedesktop.DBus.ObjectManager')
-        try:
-            data = mthd()
-            self.fix_byte(data, None, None)
-            pydata = json.loads(json.dumps(data))
-            inventory_object = self.find_inventory_object(name, pydata)
-        except Exception as e:
-            print e
+        if self.inventory_data is None:
+            obj = self.bus.get_object('org.openbmc.Inventory',
+                                      '/org/openbmc/inventory')
+            intf = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
+            mthd = obj.get_dbus_method("GetManagedObjects",
+                                       'org.freedesktop.DBus.ObjectManager')
+            try:
+                data = mthd()
+                self.fix_byte(data, None, None)
+                self.inventory_data = json.loads(json.dumps(data))
+            except Exception as e:
+                print e
+
+        inventory_object = self.find_inventory_object(name,
+                                                      self.inventory_data)
         return inventory_object
 
     def get_sensors(self, sensor):
@@ -200,22 +205,49 @@ class ObmcRedfishProviders(object):
             print e
 
     def get_cpu_info(self):
+        """Returns a dictonary of CPUs with fields set as per Redfish
+        Specification"""
         info = {}
         item = self.get_inventory('CPU')
-        for cpu, info in item.items():
-            for key, value in info.items():
+        for cpu, detail in item.items():
+            cpu = str(cpu)
+            path_list = cpu.split("/")
+            cpu_inst = path_list[-1].upper()
+            info[cpu_inst] = {} 
+            for key, value in detail.items():
+                value = str(value)
+                info[cpu_inst]["TotalCores"] = self.get_cpu_core_count(cpu_inst)
                 if key == 'Manufacturer':
-                    info['Manufacturer'] = value
+                    info[cpu_inst]['Manufacturer'] = value
+                elif key == 'fru_type':
+                    info[cpu_inst]['ProcessorType'] = value
+                elif key == 'Serial Number':
+                    info[cpu_inst]['SerialNumber'] = value
+                elif key == 'Part Number':
+                    info[cpu_inst]['PartNumber'] = value
+                elif key == 'Custom Field 2':
+                    list_value = value.split(":")
+                    info[cpu_inst]['UUID'] = list_value[1]
+                elif key == "Name":
+                    info[cpu_inst]["Name"] = value
+                elif key == 'FRU File ID':
+                    info[cpu_inst]["FRU"] = value
+                elif key == 'present':
+                    if value == 'True':
+                        info[cpu_inst]['Status'] = dict([("State", "Enabled"),
+                                                         ("Health", "Ok")])
+        return info
 
-        print info
-
-    def get_cpu_core_count(self):
+    def get_cpu_core_count(self, cpu_id):
         cores = []
         item = self.get_inventory('CORE')
         for core, info in item.items():
-            for key, value in info.items():
-                if key == 'present' and value == 'True':
-                    cores.append('core')
+            core_list = core.split("/")
+            core_id = core_list[-2].upper()
+            if core_id == cpu_id:
+                for key, value in info.items():
+                    if key == 'present' and value == 'True':
+                        cores.append('core')
         return len(cores)
 
     def get_chassis_info(self):
@@ -312,25 +344,10 @@ class ObmcRedfishProviders(object):
         print pydata
 
 
-# providers = ObmcRedfishProviders()
-#
-# print providers.get_system_id()
-# print providers.power_control('state')
-# providers.get_system_state()
 # providers.get_fan_speed()
 # providers.get_cpu_info()
-# # get_host_settings()
-# print 'Number of cores: %d' % providers.get_cpu_core_count()
-# print providers.get_chassis_info()
-#
-# for inventory_item in INVENTORY_ITEMS:
-#     item = providers.get_inventory(inventory_item)
-#     print ">>>>>>INVENTORY>>>>>>>>>>>>>>>>>>>>>"
-#     providers.print_dict("", item)
 #
 # for sensors in SENSORS_INFO.keys():
 #     value = providers.get_sensors(sensors)
 #     providers.print_dict("", value)
 #
-# # get_inventory()
-# # get_sensors()
