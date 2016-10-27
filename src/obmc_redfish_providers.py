@@ -213,10 +213,11 @@ class ObmcRedfishProviders(object):
             cpu = str(cpu)
             path_list = cpu.split("/")
             cpu_inst = path_list[-1].upper()
-            info[cpu_inst] = {} 
+            info[cpu_inst] = {}
             for key, value in detail.items():
                 value = str(value)
-                info[cpu_inst]["TotalCores"] = self.get_cpu_core_count(cpu_inst)
+                core_count = self.get_cpu_core_count(cpu_inst)
+                info[cpu_inst]["TotalCores"] = core_count
                 if key == 'Manufacturer':
                     info[cpu_inst]['Manufacturer'] = value
                 elif key == 'fru_type':

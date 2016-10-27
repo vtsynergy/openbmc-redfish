@@ -58,7 +58,7 @@ class RedfishBase(object):
 
         self.child_metadata_path = ""
 
-        self.namespace = "" 
+        self.namespace = ""
 
         self.version = ""
 
@@ -68,17 +68,17 @@ class RedfishBase(object):
         path_list = self.version.split(".")
         if len(path_list) == 1:
             path_list[0] = ""
-        else: 
-            path_list[0] = path_list[0] + "." 
+        else:
+            path_list[0] = path_list[0] + "."
 
-        web_link = (REDFISH_SCHEMA_WEB_LINK + "/" + self.namespace + 
+        web_link = (REDFISH_SCHEMA_WEB_LINK + "/" + self.namespace +
                     "." + path_list[0] + "json")
         return web_link
 
     def update_metadata_path(self):
-        self.self_metadata_path = (self.parent.child_metadata_path + 
+        self.self_metadata_path = (self.parent.child_metadata_path +
                                    "$entity")
-        self.child_metadata_path = (self.parent.self_metadata_path + 
+        self.child_metadata_path = (self.parent.self_metadata_path +
                                     "/" + self.name + "/")
 
     def add_child(self, obj):
@@ -209,7 +209,7 @@ class RedfishCollectionBase(RedfishBase):
             self.attrs["Members"].append(dict([(ODATA_ID, children.path)]))
 
     def update_metadata_path(self):
-        self.self_metadata_path = (self.parent.child_metadata_path + 
+        self.self_metadata_path = (self.parent.child_metadata_path +
                                    self.name)
         self.child_metadata_path = self.self_metadata_path + "/Members/"
 
@@ -221,8 +221,8 @@ class RedfishRoot(RedfishBase):
         super(RedfishRoot, self).__init__(name)
         self.path = str("/" + name)
         self.provider = provider
-        self.child_metadata_path = self.path 
-        self.self_metadata_path = self.path 
+        self.child_metadata_path = self.path
+        self.self_metadata_path = self.path
 
     def add_child(self, ob):
         """When adding child for root, delete all the attributes"""
@@ -401,7 +401,7 @@ class RedfishBottleRoot(object):
 
         self.system_collection.add_child(self.system)
 
-        self.processors = ProcessorCollection("Processors", 
+        self.processors = ProcessorCollection("Processors",
                                               "Processors Collection")
 
         self.system.add_child(self.processors)
@@ -414,7 +414,7 @@ class RedfishBottleRoot(object):
 
         for keys in self.processor_dict.keys():
             self.processor_list.append(Processor(keys,
-                                      self.processor_dict[keys]))
+                                       self.processor_dict[keys]))
             self.processors.add_child(self.processor_list[self.index])
             self.index = self.index + 1
 
