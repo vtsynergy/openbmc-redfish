@@ -16,6 +16,11 @@ get_paths = ['redfish',
              'redfish/v1/Systems/0000000000000000',
              'redfish/v1/Systems/0000000000000000/Processors',
              'redfish/v1/Systems/0000000000000000/Processors/CPU0',
+             'redfish/v1/Systems/0000000000000000/Memory',
+             'redfish/v1/Systems/0000000000000000/Memory/DIMM0',
+             'redfish/v1/Systems/0000000000000000/Memory/DIMM1',
+             'redfish/v1/Systems/0000000000000000/Memory/DIMM2',
+             'redfish/v1/Systems/0000000000000000/Memory/DIMM3',
              'redfish/v1/Chassis']
 
 for path in get_paths:
@@ -23,4 +28,6 @@ for path in get_paths:
     print "-----------------------------"
     print path
     print "-----------------------------"
-    print redfish_root.get_json(path_list)
+    jdata = redfish_root.get_json(path_list)
+    print json.dumps(json.loads(jdata), sort_keys=True,
+                     indent=4, separators=(',', ': '))

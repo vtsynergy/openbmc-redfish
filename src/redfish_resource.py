@@ -321,6 +321,7 @@ class System(RedfishBase):
         super(System, self).fill_static_data()
         self.attrs["Id"] = self.name
         self.attrs["SystemType"] = self.provider.get_system_type()
+        self.attrs["BiosVerion"] = self.provider.get_bios_version()
         self.add_action("Reset", ['On',
                                   'ForceOff',
                                   'GracefulShutDown',
@@ -368,9 +369,36 @@ class Processor(RedfishBase):
         super(Processor, self).__init__(name)
         self.namespace = "Processor"
         self.version = "v1_0_2.Processor"
+        self.attrs["Id"] = name
         for keys in argv.keys():
             if keys == 'UUID':
                 argv[keys] = self.fancy_uuid(argv[keys])
+            self.attrs[keys] = argv[keys]
+
+
+class MemoryCollection(RedfishCollectionBase):
+    """Class for Collection of Memorys"""
+
+    def __init__(self, name, instance_id):
+        super(MemoryCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "MemoryCollection"
+        self.version = "MemoryCollection"
+
+    def fill_static_data(self):
+        super(MemoryCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+
+
+class Memory(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name, argv):
+        super(Memory, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Memory"
+        self.version = "v1_0_0.Memory"
+        for keys in argv.keys():
             self.attrs[keys] = argv[keys]
 
 
@@ -406,6 +434,11 @@ class RedfishBottleRoot(object):
 
         self.system.add_child(self.processors)
 
+        self.memories = MemoryCollection("Memory",
+                                         "Memory Collection")
+
+        self.system.add_child(self.memories)
+
         self.processor_list = []
 
         self.processor_dict = self.provider.get_cpu_info()
@@ -419,6 +452,19 @@ class RedfishBottleRoot(object):
             self.index = self.index + 1
 
         self.index = 0
+
+        self.memory_list = []
+
+        self.memory_dict = self.provider.get_dimm_info()
+
+        for keys in self.memory_dict.keys():
+            self.memory_list.append(Memory(keys,
+                                    self.memory_dict[keys]))
+            self.memories.add_child(self.memory_list[self.index])
+            self.index = self.index + 1
+
+        self.index = 0
+
 
     def print_all(self):
         self.root.print_all()
