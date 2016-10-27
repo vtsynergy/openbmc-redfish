@@ -232,9 +232,23 @@ class ObmcRedfishProviders(object):
                                                          ("Health", "Ok")])
         return info
 
-
-
-
+    def get_pcie_info(self):
+        """Return a dictonary of PCIeDevices with fields set as per Redfish
+        specification"""
+        info = {}
+        item = self.get_inventory('PCIE_CARD')
+        for pcie in item.keys():
+            pcie = str(pcie)
+            path_list = pcie.split("/")
+            pcie_inst = path_list[-1].upper()
+            info[pcie_inst] = {}
+            for key in item[pcie].keys():
+                value = str(item[pcie][key])
+                if key == 'present':
+                    if value == "True":
+                        info[pcie_inst]['Status'] = dict([("State", "Enabled"),
+                                                         ("Health", "Ok")])
+        return info
 
     def get_cpu_info(self):
         """Returns a dictonary of CPUs with fields set as per Redfish

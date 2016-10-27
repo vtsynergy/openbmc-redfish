@@ -39,9 +39,6 @@ class RedfishBase(object):
         """Dictonary for action, key=Function, value = List of allowable
         values"""
 
-        self.related_object = []
-        """List of related objects"""
-
         self.name = name
         """name for the class that specifies the Path to resource"""
 
@@ -117,9 +114,13 @@ class RedfishBase(object):
         is recieved. Extend in inherited classes"""
         pass
 
-    def add_related_object(self, obj):
+    def add_related_object(self, name, obj):
         """Add a related object to this item"""
-        self.related_object.append(obj)
+        if "Links" not in self.attrs:
+            self.attrs["Links"] = {}
+        if name not in self.attrs["Links"]:
+            self.attrs["Links"][name] = []
+        self.attrs["Links"][name].append(dict([(ODATA_ID, obj.path)]))
 
     def get_export_data(self, op):
         """Export the json data to server"""
@@ -296,11 +297,36 @@ class ChassisCollection(RedfishCollectionBase):
         self.attrs["Name"] = self.instance_id
 
 
-class ChassisInstance(RedfishBase):
+class Chassis(RedfishBase):
     """Chassis Information"""
 
-    def __init__(self, name):
-        super(ChassisInstance, self).__init__(name)
+    def __init__(self, name, argv):
+        super(Chassis, self).__init__(name)
+        self.namespace = "Chassis"
+        self.version = "v1_0_3.Chassis"
+        for keys in argv.keys():
+            if keys is not "UUID":
+                self.attrs[keys] = argv[keys].strip()
+
+    def fill_static_data(self):
+        super(Chassis, self).fill_static_data()
+        self.attrs["Id"] = self.name
+        self.add_action("LedUpdate", ['On',
+                                      'Off',
+                                      'BlinkFast',
+                                      'BlinkSlow'])
+        for children in self.child:
+            self.attrs[children.name] = dict([(ODATA_TYPE, children.path)])
+
+    def ledupdate(self, op):
+        self.provider.led_operation(op, 'identify')
+
+    def fill_dynamic_data(self):
+        super(Chassis, self).fill_dynamic_data()
+        led_state = self.provider.led_operation('state', 'identify')
+        if led_state is not None:
+            self.attrs['IndicatorLed'] = led_state
+        self.attrs['PowerState'] = self.provider.get_system_state()
 
 
 class System(RedfishBase):
@@ -429,6 +455,12 @@ class RedfishBottleRoot(object):
 
         self.system_collection.add_child(self.system)
 
+        self.chassis = Chassis("1U", self.chassis_info)
+
+        self.chassis_collection.add_child(self.chassis)
+
+        self.chassis.add_related_object("ComputerSystems", self.system)
+
         self.processors = ProcessorCollection("Processors",
                                               "Processors Collection")
 
@@ -464,7 +496,6 @@ class RedfishBottleRoot(object):
             self.index = self.index + 1
 
         self.index = 0
-
 
     def print_all(self):
         self.root.print_all()
