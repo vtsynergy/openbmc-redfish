@@ -339,7 +339,8 @@ class System(RedfishBase):
         for keys in argv.keys():
             if keys is "UUID":
                 uuid = argv[keys].split(':')
-                self.attrs[keys] = self.fancy_uuid(uuid[1])
+                if len(uuid) > 1:
+                    self.attrs[keys] = self.fancy_uuid(uuid[1])
             else:
                 self.attrs[keys] = argv[keys].strip()
 
@@ -449,6 +450,8 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.system_collection)
 
         self.chassis_info = self.provider.get_chassis_info()
+
+        print self.chassis_info
 
         self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
