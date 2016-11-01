@@ -30,33 +30,31 @@ POWER_CONTROL = {'On': 'powerOn',
                  }
 
 
-SENSORS_INFO = {
-               'AMBIENT': 'ambient',
-               'BOOT_PROGRESS': 'BootProgress',
-               'SYSTEM_POWER': 'system_power',
-               'OCC_STATUS': 'OccStatus',
-               'CURR_POWER_CAP': 'curr_cap',
-               'OP_SYS_STAT': 'OperatingSystemStatus',
-               'POWER_CAP': 'PowerCap',
-               'POWER_MIN_CAP': 'min_cap',
-               'POWER_MAX_CAP': 'max_cap',
-               'POWER_NORMAL_CAP':  'n_cap',
-               'POWER_USER_CAP': 'user_cap',
-               'BOOT_COUNT': 'BootCount'}
+SENSORS_INFO = {'AMBIENT': 'ambient',
+                'BOOT_PROGRESS': 'BootProgress',
+                'SYSTEM_POWER': 'system_power',
+                'OCC_STATUS': 'OccStatus',
+                'CURR_POWER_CAP': 'curr_cap',
+                'OP_SYS_STAT': 'OperatingSystemStatus',
+                'POWER_CAP': 'PowerCap',
+                'POWER_MIN_CAP': 'min_cap',
+                'POWER_MAX_CAP': 'max_cap',
+                'POWER_NORMAL_CAP':  'n_cap',
+                'POWER_USER_CAP': 'user_cap',
+                'BOOT_COUNT': 'BootCount'}
 
 # System states
 #   state can change to next state in 2 ways:
 #   - a process emits a GotoSystemState signal with state name to goto
 #   - objects specified in EXIT_STATE_DEPEND have started
-SYSTEM_STATES = {
-        'BASE_APPS': "Off",
-        'BMC_STARTING': "Off",
-        'BMC_READY': "Off",
-        'HOST_POWERING_ON': "PoweringOn",
-        'HOST_POWERED_ON': "PoweringOn",
-        'HOST_BOOTING': "PoweringOn",
-        'HOST_BOOTED': "On",
-        'HOST_POWERED_OFF': "Off"}
+SYSTEM_STATES = {'BASE_APPS': "Off",
+                 'BMC_STARTING': "Off",
+                 'BMC_READY': "Off",
+                 'HOST_POWERING_ON': "PoweringOn",
+                 'HOST_POWERED_ON': "PoweringOn",
+                 'HOST_BOOTING': "PoweringOn",
+                 'HOST_BOOTED': "On",
+                 'HOST_POWERED_OFF': "Off"}
 
 LED_FUNCTIONS = {'On': 'setOn',
                  'Off': 'setOff',
@@ -66,18 +64,16 @@ LED_FUNCTIONS = {'On': 'setOn',
 
 LED_TYPE = ['identify', 'power', 'heartbeat']
 
-INVENTORY_ITEMS = [
-        'SYSTEM',
-        'MAIN_PLANAR',
-        'FAN',
-        'BMC',
-        'CPU',
-        'CORE',
-        'DIMM',
-        'PCIE_CARD',
-        'SYSTEM_EVENT',
-        'MEMORY_BUFFER'
-]
+INVENTORY_ITEMS = ['SYSTEM',
+                   'MAIN_PLANAR',
+                   'FAN',
+                   'BMC',
+                   'CPU',
+                   'CORE',
+                   'DIMM',
+                   'PCIE_CARD',
+                   'SYSTEM_EVENT',
+                   'MEMORY_BUFFER']
 
 
 class ObmcRedfishProviders(object):

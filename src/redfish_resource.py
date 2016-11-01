@@ -43,7 +43,7 @@ class RedfishBase(object):
         """name for the class that specifies the Path to resource"""
 
         self.static_data_filled = 0
-        """Flag to show if the static data was filled in attrs dictonary, update
+        """Flag to show if the static data was filled in attrs dict, update
         the flag when the static data is filled, would be updated when the
         resource is queried for the first time"""
 
