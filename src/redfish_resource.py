@@ -7,6 +7,7 @@
 import sys
 import json
 from obmc_redfish_providers import *
+from redfish_eventer import *
 
 """
 Redfish Resource Types
@@ -375,6 +376,28 @@ class System(RedfishBase):
         self.attrs['PowerState'] = self.provider.get_system_state()
 
 
+class EventService(RedfishBase):
+    """Event Service Resource"""
+
+    def __init__(self, name):
+        super(EventService, self).__init__(name)
+        self.attrs["ServiceEnabled"] = False
+
+
+class EventDestinationCollection(RedfishCollectionBase):
+    """Event Destination Collection class"""
+
+    def __init__(self, name):
+        super(EventDestinationCollection, self).__init__(name)
+
+
+class Registries(RedfishCollectionBase):
+    """Message Registries Collection class"""
+
+    def __init__(self, name):
+        super(Registries, self).__init__(name)
+
+
 class ProcessorCollection(RedfishCollectionBase):
     """Class for Collection of Processors"""
 
@@ -435,6 +458,8 @@ class RedfishBottleRoot(object):
     def __init__(self):
         """Build the resource tree in a top-down fashion"""
         self.provider = ObmcRedfishProviders()
+
+        self.eventer = Eventer(False, 3, 5)
 
         self.root = RedfishRoot("redfish", self.provider)
 
@@ -499,6 +524,19 @@ class RedfishBottleRoot(object):
             self.index = self.index + 1
 
         self.index = 0
+
+        self.registries = Registries("Base Message Registry File")
+
+        self.v1.add_child(self.registries)
+
+        self.event_service = EventService("Event Service")
+
+        self.v1.add_child(self.event_service)
+
+        self.event_destination_collection = \
+            EventDestinationCollection("Event Subscriptions Collection")
+
+        self.event_service.add_child(self.event_destination_collection)
 
 #       Experimental code for sensors. Would remove this later
 #        self.provider.get_fan_speed()
