@@ -89,7 +89,6 @@ class Eventer(object):
         self.service_enabled = service_enabled
         self.delivery_retry_attempts = delivery_retry_attempts
         self.delivery_retry_interval_seconds = delivery_retry_interval_seconds
-        # contains key value pairs of client_URI_endpoint: subscription_id
         self.client_URI_endpoints = self.read_subscriptions_from_tmp()
 
     def create_subscription(self, client_URI_endpoint, event_destination_id,
