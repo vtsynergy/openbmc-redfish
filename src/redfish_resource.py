@@ -429,6 +429,26 @@ class Memory(RedfishBase):
             self.attrs[keys] = argv[keys]
 
 
+class Power(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name):
+        super(Power, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Power"
+        self.version = "v1_2_0.Power"
+
+
+class Thermal(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name):
+        super(Thermal, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Thermal"
+        self.version = "v1_1_0.Thermal"
+
+
 class RedfishBottleRoot(object):
     """Class that contains and builds the resource tree"""
 
@@ -500,11 +520,19 @@ class RedfishBottleRoot(object):
 
         self.index = 0
 
+        self.thermal = Thermal("Thermal")
+
+        self.chassis.add_child(self.thermal)
+
+        self.power = Power("Power")
+
+        self.chassis.add_child(self.power)
+
 #       Experimental code for sensors. Would remove this later
 #        self.provider.get_fan_speed()
-#        for sensors in SENSORS_INFO.keys():
-#            value = self.provider.get_sensors(sensors)
-#            self.provider.print_dict("", value)
+        for sensors in SENSORS_INFO.keys():
+            value = self.provider.get_sensors(sensors)
+            self.provider.print_dict("", value)
 
     def print_all(self):
         self.root.print_all()

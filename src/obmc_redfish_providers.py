@@ -124,9 +124,9 @@ class ObmcRedfishProviders(object):
         merged = {}
         for op in object:
             p_op = op.split('/')
-        if p_op[-1] == name:
-            for prop, value in object[op].items():
-                merged.update(value)
+            if p_op[-1] == name:
+                for prop, value in object[op].items():
+                    merged.update(value)
         return merged
 
     def print_dict(self, name, data):
