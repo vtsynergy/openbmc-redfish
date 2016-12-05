@@ -36,7 +36,7 @@ class RouteHandler(object):
 
 
 class GetRequestHandler(RouteHandler):
-    verbs = 'GET'
+    verbs = ['GET', 'POST']
     rules = '/<path:path>'
 
     def __init__(self, app, redfish):
@@ -54,6 +54,15 @@ class GetRequestHandler(RouteHandler):
 
     def do_get(self, path='/'):
         return self.find(path)
+
+    def find_post(self, path='/'):
+        """provide the path to redfish build tree and get a response"""
+        path_list = path.split('/')
+        print path_list
+        return self.redfish.do_action(path_list, request)
+
+    def do_post(self, path):
+        return self.find_post(path)
 
 
 class RedfishServer(Bottle):
@@ -83,12 +92,6 @@ class RedfishServer(Bottle):
             route.callback._setup(**args)
 
         return route, args
-
-#    @post('/<path:path>')
-#    def post_action(path):
-#        path_list = path.split('/')
-#        return self.redfish_root.do_action(path_list, request)
-
 
 if __name__ == '__main__':
     log = logging.getLogger('Rocket.Errors')
