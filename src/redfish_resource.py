@@ -156,16 +156,34 @@ class RedfishBase(object):
             else:
                 return "Error [ACTION]: Path not correct"
         else:
-            if path[1] != 'Action':
-                return "Error: Action URI is incorrect"
+            if path[1] != 'Actions':
+                print path
+                return "Error: Action URI is incorrect" + self.name
             else:
                 action_list = path[2].split('.')
                 uri_namespace = action_list[0]
                 action = action_list[1]
+                action_type = action + "Type"
+                if self.static_data_filled == 0:
+                    self.fill_static_data()
+                    self.static_data_filled = 1
+                self.fill_dynamic_data()
                 if action in self.actions.keys():
-                    print "FIXME: get attribute"
+                    try:
+                        method = getattr(self, str(action.lower()))
+                        method_arg = op.json[action_type]
+                        if method_arg is None:
+                            return "Argument is not available"
+                        if method_arg in self.actions[action]:
+                            print "Argument is " + str(method_arg)
+                            method(method_arg)
+                        else:
+                            return "FIXME: Error:argument " + method_arg
+                        print method_arg
+                    except AttributeError:
+                        return "FIXME: Error method does not exist"
                 else:
-                    print "FIXME: return error object,  action is undefined"
+                    print "FIXME: return error object " + action + " is undef"
                 print uri_namespace + action + str(op.POST.items())
                 return
 
