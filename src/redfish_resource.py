@@ -8,6 +8,7 @@ import sys
 import json
 from obmc_redfish_providers import *
 from redfish_eventer import *
+from redfish_message_registry import *
 
 """
 Redfish Resource Types
@@ -23,6 +24,8 @@ REDFISH_SCHEMA_WEB_LINK = "http://redfish.dmtf.org/schemas/v1"
 ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
+
+REGISTRY_FILES = ['error_message_registry.json']
 
 
 class RedfishBase(object):
@@ -460,6 +463,8 @@ class RedfishBottleRoot(object):
         self.provider = ObmcRedfishProviders()
 
         self.eventer = Eventer(False, 3, 5)
+
+        self.message_registry = MessageRegistry(REGISTRY_FILES)
 
         self.root = RedfishRoot("redfish", self.provider)
 
