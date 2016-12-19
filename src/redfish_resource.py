@@ -25,7 +25,9 @@ ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
 
-REGISTRY_FILES = ['error_message_registry.json']
+
+ERROR_REGISTRY_FILE_LOCATION = 'error_message_registry.json'
+REGISTRY_FILES = [ERROR_REGISTRY_FILE_LOCATION]
 
 
 class RedfishBase(object):
@@ -394,6 +396,21 @@ class EventDestinationCollection(RedfishCollectionBase):
         super(EventDestinationCollection, self).__init__(name)
 
 
+class ErrorRegistryFile(RedfishBase):
+    """Error Registry File Resource"""
+
+    def __init__(self, location):
+        super(EventService, self).__init__(name)
+        self.attrs["Location"] = ERROR_REGISTRY_FILE_LOCATION
+
+
+class RegistryFileCollection(RedfishCollectionBase):
+    """Registry File Collection"""
+
+    def __init__(self, name):
+        super(RegistryFileCollection, self).__init__(name)
+
+
 class Registries(RedfishCollectionBase):
     """Message Registries Collection class"""
 
@@ -542,6 +559,16 @@ class RedfishBottleRoot(object):
             EventDestinationCollection("Event Subscriptions Collection")
 
         self.event_service.add_child(self.event_destination_collection)
+
+        self.registry_file_collection = \
+            RegistryFileCollection("Registry Files Collection")
+
+        self.v1.add_child(self.registry_file_collection)
+
+        self.error_registry_file = \
+            ErrorRegistryFile(ERROR_REGISTRY_FILE_LOCATION)
+
+        self.registry_file_collection.add_child(self.error_registry_file)
 
 #       Experimental code for sensors. Would remove this later
 #        self.provider.get_fan_speed()
