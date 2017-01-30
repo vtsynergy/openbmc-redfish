@@ -7,6 +7,8 @@
 import sys
 import json
 from obmc_redfish_providers import *
+from redfish_eventer import *
+from redfish_message_registry import *
 
 """
 Redfish Resource Types
@@ -22,6 +24,10 @@ REDFISH_SCHEMA_WEB_LINK = "http://redfish.dmtf.org/schemas/v1"
 ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
+
+
+ERROR_REGISTRY_FILE_LOCATION = 'error_message_registry.json'
+REGISTRY_FILES = [ERROR_REGISTRY_FILE_LOCATION]
 
 
 class RedfishBase(object):
@@ -393,6 +399,43 @@ class System(RedfishBase):
         self.attrs['PowerState'] = self.provider.get_system_state()
 
 
+class EventService(RedfishBase):
+    """Event Service Resource"""
+
+    def __init__(self, name):
+        super(EventService, self).__init__(name)
+        self.attrs["ServiceEnabled"] = False
+
+
+class EventDestinationCollection(RedfishCollectionBase):
+    """Event Destination Collection class"""
+
+    def __init__(self, name):
+        super(EventDestinationCollection, self).__init__(name)
+
+
+class ErrorRegistryFile(RedfishBase):
+    """Error Registry File Resource"""
+
+    def __init__(self, location):
+        super(EventService, self).__init__(name)
+        self.attrs["Location"] = ERROR_REGISTRY_FILE_LOCATION
+
+
+class RegistryFileCollection(RedfishCollectionBase):
+    """Registry File Collection"""
+
+    def __init__(self, name):
+        super(RegistryFileCollection, self).__init__(name)
+
+
+class Registries(RedfishCollectionBase):
+    """Message Registries Collection class"""
+
+    def __init__(self, name):
+        super(Registries, self).__init__(name)
+
+
 class ProcessorCollection(RedfishCollectionBase):
     """Class for Collection of Processors"""
 
@@ -474,6 +517,10 @@ class RedfishBottleRoot(object):
         """Build the resource tree in a top-down fashion"""
         self.provider = ObmcRedfishProviders()
 
+        self.eventer = Eventer(False, 3, 5)
+
+        self.message_registry = MessageRegistry(REGISTRY_FILES)
+
         self.root = RedfishRoot("redfish", self.provider)
 
         self.v1 = ServiceRoot("v1", "RootService")
@@ -537,6 +584,29 @@ class RedfishBottleRoot(object):
             self.index = self.index + 1
 
         self.index = 0
+
+        self.registries = Registries("Base Message Registry File")
+
+        self.v1.add_child(self.registries)
+
+        self.event_service = EventService("Event Service")
+
+        self.v1.add_child(self.event_service)
+
+        self.event_destination_collection = \
+            EventDestinationCollection("Event Subscriptions Collection")
+
+        self.event_service.add_child(self.event_destination_collection)
+
+        self.registry_file_collection = \
+            RegistryFileCollection("Registry Files Collection")
+
+        self.v1.add_child(self.registry_file_collection)
+
+        self.error_registry_file = \
+            ErrorRegistryFile(ERROR_REGISTRY_FILE_LOCATION)
+
+        self.registry_file_collection.add_child(self.error_registry_file)
 
         self.thermal = Thermal("Thermal")
 
