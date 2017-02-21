@@ -1,18 +1,14 @@
-#! /usr/bin/env python
+"""
+ Author: Anshuman Verma
+ Date  : Oct 5, 2016
+ Description : Resource for Redfish
+ Redfish Resource Types
+"""
 
-# Author: Anshuman Verma
-# Date  : Oct 5, 2016
-# Description : Resource for Redfish
-
-import sys
 import json
 from obmc_redfish_providers import *
 from redfish_eventer import *
 from redfish_message_registry import *
-
-"""
-Redfish Resource Types
-"""
 
 REDFISH_VERSION = str("1.0.3")
 REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
@@ -347,7 +343,7 @@ class Chassis(RedfishBase):
 
     def fill_dynamic_data(self):
         super(Chassis, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
@@ -393,7 +389,7 @@ class System(RedfishBase):
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()

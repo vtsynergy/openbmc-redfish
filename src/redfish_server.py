@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
-import json
 import sys
 import os
 import logging
+# FIXME: Remove what I don't use
 from bottle import Bottle, abort, request, response, JSONPlugin, HTTPError
 from redfish_resource import *
 from rocket import Rocket
@@ -69,6 +69,7 @@ class RedfishServer(Bottle):
 
     def __init__(self):
         super(RedfishServer, self).__init__(autojson=False)
+# FIXME: can you pass the provider as an argument?
         self.redfish_root = RedfishBottleRoot()
         self.create_handlers()
         self.install_handlers()
@@ -79,6 +80,8 @@ class RedfishServer(Bottle):
     def install_handlers(self):
         self.get_request_handler.install()
 
+# FIXME: I don't think this would be needed if we had more than a single route
+# that matches everything.
     def custom_router_match(self, environ):
         ''' The built-in Bottle algorithm for figuring out if a 404 or 405 is
             needed doesn't work for us since the instance rules match
