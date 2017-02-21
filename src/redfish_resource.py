@@ -410,12 +410,12 @@ class EventDestinationCollection(RedfishCollectionBase):
         super(EventDestinationCollection, self).__init__(name)
 
 
-class ErrorRegistryFile(RedfishBase):
+class ErrorRegistryFile(EventService):
     """Error Registry File Resource"""
 
-    def __init__(self, location):
+    def __init__(self, name, location):
         super(EventService, self).__init__(name)
-        self.attrs["Location"] = ERROR_REGISTRY_FILE_LOCATION
+        self.attrs["Location"] = location
 
 
 class RegistryFileCollection(RedfishCollectionBase):
@@ -600,7 +600,7 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.registry_file_collection)
 
         self.error_registry_file = \
-            ErrorRegistryFile(ERROR_REGISTRY_FILE_LOCATION)
+            ErrorRegistryFile("Error Registry File", ERROR_REGISTRY_FILE_LOCATION)
 
         self.registry_file_collection.add_child(self.error_registry_file)
 
