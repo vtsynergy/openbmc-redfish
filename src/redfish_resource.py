@@ -107,7 +107,8 @@ class RedfishBase(object):
         function in inherited classes to update the information"""
         self.attrs[ODATA_CONTEXT] = self.self_metadata_path
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
+#        For Debug: FIXME: remvoe this attribute,
+#        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
