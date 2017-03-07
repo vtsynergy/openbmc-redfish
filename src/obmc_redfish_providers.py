@@ -1,24 +1,11 @@
-#! /usr/bin/env python
-
-# Author:  Anshuman Verma (anshuman@vt.edu)
-# Date   :  Aug 26th, 2016
-# Description:
-# Implements redifsh APIs using bottle for Board Management Controller using
-# Dbus interface for querying, and performing tasks.
-# This code must comly to pep8 and redfish standards
-# Redfish uses HTTP operations including GET, PUT, PATCH, POST, DELETE, HEAD.
-# GET retrieves data.  POST is used for creating resources or to use actions.
-# DELETE will delete a resource, but there are currently only a few resources
-# that can be deleted.  PATCH is used to change one or more
-# properties on a resource, while PUT is used to replace a resource entirely
-# (though only a few resources can be completely replaced).  HEAD is similar to
-# GET without the body data returned, and can be used for figuring out the URI
-# structure by programs accessing a Redfish implementation.
+"""
+ Author:  Anshuman Verma (anshuman@vt.edu)
+ Date   :  Aug 26th, 2016
+ Description:
+"""
 
 import json
-import sys
 import dbus
-# from bottle import route, run, template, get, post
 
 
 POWER_CONTROL = {'On': 'powerOn',
@@ -26,58 +13,55 @@ POWER_CONTROL = {'On': 'powerOn',
                  'GracefulShutDown': 'softPowerOff',
                  'ForceRestart': 'reboot',
                  'GracefulRestart': 'softReboot',
-                 'state': 'getPowerState'
+                 'State': 'getPowerState'
                  }
 
 
-SENSORS_INFO = {
-               'AMBIENT': 'ambient',
-               'BOOT_PROGRESS': 'BootProgress',
-               'SYSTEM_POWER': 'system_power',
-               'OCC_STATUS': 'OccStatus',
-               'CURR_POWER_CAP': 'curr_cap',
-               'OP_SYS_STAT': 'OperatingSystemStatus',
-               'POWER_CAP': 'PowerCap',
-               'POWER_MIN_CAP': 'min_cap',
-               'POWER_MAX_CAP': 'max_cap',
-               'POWER_NORMAL_CAP':  'n_cap',
-               'POWER_USER_CAP': 'user_cap',
-               'BOOT_COUNT': 'BootCount'}
+SENSORS_INFO = {'AMBIENT': 'ambient',
+                'BOOT_PROGRESS': 'BootProgress',
+                'SYSTEM_POWER': 'system_power',
+                'OCC_STATUS': 'OccStatus',
+                'CURR_POWER_CAP': 'curr_cap',
+                'OP_SYS_STAT': 'OperatingSystemStatus',
+                'POWER_CAP': 'PowerCap',
+                'POWER_MIN_CAP': 'min_cap',
+                'POWER_MAX_CAP': 'max_cap',
+                'POWER_NORMAL_CAP':  'n_cap',
+                'POWER_USER_CAP': 'user_cap',
+                'BOOT_COUNT': 'BootCount'}
 
 # System states
 #   state can change to next state in 2 ways:
 #   - a process emits a GotoSystemState signal with state name to goto
 #   - objects specified in EXIT_STATE_DEPEND have started
-SYSTEM_STATES = {
-        'BASE_APPS': "Off",
-        'BMC_STARTING': "Off",
-        'BMC_READY': "Off",
-        'HOST_POWERING_ON': "PoweringOn",
-        'HOST_POWERED_ON': "PoweringOn",
-        'HOST_BOOTING': "PoweringOn",
-        'HOST_BOOTED': "On",
-        'HOST_POWERED_OFF': "Off"}
+SYSTEM_STATES = {'BASE_APPS': "Off",
+                 'BMC_STARTING': "Off",
+                 'BMC_READY': "Off",
+                 'HOST_POWERING_ON': "PoweringOn",
+                 'HOST_POWERED_ON': "PoweringOn",
+                 'HOST_BOOTING': "PoweringOn",
+                 'HOST_BOOTED': "On",
+                 'HOST_POWERED_OFF': "Off"}
 
 LED_FUNCTIONS = {'On': 'setOn',
                  'Off': 'setOff',
                  'BlinkFast': 'setBlinkFast',
                  'BlinkSlow': 'setBlinkSlow',
-                 'state': 'GetLedState'}
+                 'State': 'GetLedState'}
 
 LED_TYPE = ['identify', 'power', 'heartbeat']
 
-INVENTORY_ITEMS = [
-        'SYSTEM',
-        'MAIN_PLANAR',
-        'FAN',
-        'BMC',
-        'CPU',
-        'CORE',
-        'DIMM',
-        'PCIE_CARD',
-        'SYSTEM_EVENT',
-        'MEMORY_BUFFER'
-]
+# FIXME : Remove this later, keeping it to know the names of items
+# INVENTORY_ITEMS = ['SYSTEM',
+#                    'MAIN_PLANAR',
+#                    'FAN',
+#                    'BMC',
+#                    'CPU',
+#                    'CORE',
+#                    'DIMM',
+#                    'PCIE_CARD',
+#                    'SYSTEM_EVENT',
+#                    'MEMORY_BUFFER']
 
 
 class ObmcRedfishProviders(object):
@@ -89,6 +73,7 @@ class ObmcRedfishProviders(object):
 
         self.inventory_data = None
 
+# FIXME: This doesn't need to be a member function -- Brad
     def fix_byte(self, it, key, parent):
         if (isinstance(it, dbus.Array)):
             for i in range(0, len(it)):
@@ -102,16 +87,6 @@ class ObmcRedfishProviders(object):
         elif (isinstance(it, dbus.Double)):
             if key is not None:
                 parent[key] = float(it)
-        else:
-            pass
-
-    def flatten_dict(self, object):
-        merged = {}
-        for op in object:
-            for property, value in object[op].items():
-                merged.update(value)
-        del object[op]
-        object[op] = merged
 
     def find_inventory_object(self, name, object):
         merged = {}
@@ -121,18 +96,20 @@ class ObmcRedfishProviders(object):
                     merged[op] = value
         return merged
 
-    def get_system_count(self):
-        return 2
+# FIXME: A placeholder, Would remove it
+#    def get_system_count(self):
+#        return 2
 
     def find_sensor_value(self, name, object):
         merged = {}
         for op in object:
             p_op = op.split('/')
-        if p_op[-1] == name:
-            for prop, value in object[op].items():
-                merged.update(value)
+            if p_op[-1] == name:
+                for prop, value in object[op].items():
+                    merged.update(value)
         return merged
 
+# FIXME: A Non-member function 
     def print_dict(self, name, data):
         if (isinstance(data, dict)):
             print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
@@ -142,6 +119,9 @@ class ObmcRedfishProviders(object):
         else:
             print name+" = "+str(data)
 
+# FIXME: We have a 'nameserver' with python bindings that lets you look these
+# up. It is used extensively in the existing rest server if an example would
+# help. FIX the return value argument
     def get_inventory(self, name):
         if self.inventory_data is None:
             obj = self.bus.get_object('org.openbmc.Inventory',
@@ -155,11 +135,13 @@ class ObmcRedfishProviders(object):
                 self.inventory_data = json.loads(json.dumps(data))
             except Exception as e:
                 print e
+                return "error"
 
         inventory_object = self.find_inventory_object(name,
                                                       self.inventory_data)
         return inventory_object
 
+#FIXME: Not all sensors are implemented in this, use nameserver! 
     def get_sensors(self, sensor):
         sensor_values = {}
         sensor_values['type'] = sensor

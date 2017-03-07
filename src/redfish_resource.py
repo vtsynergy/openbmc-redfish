@@ -1,16 +1,14 @@
-#! /usr/bin/env python
+"""
+ Author: Anshuman Verma
+ Date  : Oct 5, 2016
+ Description : Resource for Redfish
+ Redfish Resource Types
+"""
 
-# Author: Anshuman Verma
-# Date  : Oct 5, 2016
-# Description : Resource for Redfish
-
-import sys
 import json
 from obmc_redfish_providers import *
-
-"""
-Redfish Resource Types
-"""
+from redfish_eventer import *
+from redfish_message_registry import *
 
 REDFISH_VERSION = str("1.0.3")
 REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
@@ -22,6 +20,10 @@ REDFISH_SCHEMA_WEB_LINK = "http://redfish.dmtf.org/schemas/v1"
 ODATA_ID = "@odata.id"
 ODATA_TYPE = "@odata.type"
 ODATA_CONTEXT = "@odata.context"
+
+
+ERROR_REGISTRY_FILE_LOCATION = 'error_message_registry.json'
+REGISTRY_FILES = [ERROR_REGISTRY_FILE_LOCATION]
 
 
 class RedfishBase(object):
@@ -43,7 +45,7 @@ class RedfishBase(object):
         """name for the class that specifies the Path to resource"""
 
         self.static_data_filled = 0
-        """Flag to show if the static data was filled in attrs dictonary, update
+        """Flag to show if the static data was filled in attrs dict, update
         the flag when the static data is filled, would be updated when the
         resource is queried for the first time"""
 
@@ -157,16 +159,34 @@ class RedfishBase(object):
             else:
                 return "Error [ACTION]: Path not correct"
         else:
-            if path[1] != 'Action':
-                return "Error: Action URI is incorrect"
+            if path[1] != 'Actions':
+                print path
+                return "Error: Action URI is incorrect" + self.name
             else:
                 action_list = path[2].split('.')
                 uri_namespace = action_list[0]
                 action = action_list[1]
+                action_type = action + "Type"
+                if self.static_data_filled == 0:
+                    self.fill_static_data()
+                    self.static_data_filled = 1
+                self.fill_dynamic_data()
                 if action in self.actions.keys():
-                    print "FIXME: get attribute"
+                    try:
+                        method = getattr(self, str(action.lower()))
+                        method_arg = op.json[action_type]
+                        if method_arg is None:
+                            return "Argument is not available"
+                        if method_arg in self.actions[action]:
+                            print "Argument is " + str(method_arg)
+                            method(method_arg)
+                        else:
+                            return "FIXME: Error:argument " + method_arg
+                        print method_arg
+                    except AttributeError:
+                        return "FIXME: Error method does not exist"
                 else:
-                    print "FIXME: return error object,  action is undefined"
+                    print "FIXME: return error object " + action + " is undef"
                 print uri_namespace + action + str(op.POST.items())
                 return
 
@@ -324,7 +344,7 @@ class Chassis(RedfishBase):
 
     def fill_dynamic_data(self):
         super(Chassis, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
@@ -340,7 +360,8 @@ class System(RedfishBase):
         for keys in argv.keys():
             if keys is "UUID":
                 uuid = argv[keys].split(':')
-                self.attrs[keys] = self.fancy_uuid(uuid[1])
+                if len(uuid) > 1:
+                    self.attrs[keys] = self.fancy_uuid(uuid[1])
             else:
                 self.attrs[keys] = argv[keys].strip()
 
@@ -369,10 +390,47 @@ class System(RedfishBase):
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
+
+
+class EventService(RedfishBase):
+    """Event Service Resource"""
+
+    def __init__(self, name):
+        super(EventService, self).__init__(name)
+        self.attrs["ServiceEnabled"] = False
+
+
+class EventDestinationCollection(RedfishCollectionBase):
+    """Event Destination Collection class"""
+
+    def __init__(self, name):
+        super(EventDestinationCollection, self).__init__(name)
+
+
+class ErrorRegistryFile(EventService):
+    """Error Registry File Resource"""
+
+    def __init__(self, name, location):
+        super(EventService, self).__init__(name)
+        self.attrs["Location"] = location
+
+
+class RegistryFileCollection(RedfishCollectionBase):
+    """Registry File Collection"""
+
+    def __init__(self, name):
+        super(RegistryFileCollection, self).__init__(name)
+
+
+class Registries(RedfishCollectionBase):
+    """Message Registries Collection class"""
+
+    def __init__(self, name):
+        super(Registries, self).__init__(name)
 
 
 class ProcessorCollection(RedfishCollectionBase):
@@ -429,12 +487,36 @@ class Memory(RedfishBase):
             self.attrs[keys] = argv[keys]
 
 
+class Power(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name):
+        super(Power, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Power"
+        self.version = "v1_2_0.Power"
+
+
+class Thermal(RedfishBase):
+    """CPU Information"""
+
+    def __init__(self, name):
+        super(Thermal, self).__init__(name)
+        self.attrs["Id"] = name
+        self.namespace = "Thermal"
+        self.version = "v1_1_0.Thermal"
+
+
 class RedfishBottleRoot(object):
     """Class that contains and builds the resource tree"""
 
     def __init__(self):
         """Build the resource tree in a top-down fashion"""
         self.provider = ObmcRedfishProviders()
+
+        self.eventer = Eventer(False, 3, 5)
+
+        self.message_registry = MessageRegistry(REGISTRY_FILES)
 
         self.root = RedfishRoot("redfish", self.provider)
 
@@ -450,6 +532,8 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.system_collection)
 
         self.chassis_info = self.provider.get_chassis_info()
+
+        print self.chassis_info
 
         self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
@@ -498,11 +582,42 @@ class RedfishBottleRoot(object):
 
         self.index = 0
 
+        self.registries = Registries("Base Message Registry File")
+
+        self.v1.add_child(self.registries)
+
+        self.event_service = EventService("Event Service")
+
+        self.v1.add_child(self.event_service)
+
+        self.event_destination_collection = \
+            EventDestinationCollection("Event Subscriptions Collection")
+
+        self.event_service.add_child(self.event_destination_collection)
+
+        self.registry_file_collection = \
+            RegistryFileCollection("Registry Files Collection")
+
+        self.v1.add_child(self.registry_file_collection)
+
+        self.error_registry_file = \
+            ErrorRegistryFile("Error Registry File", ERROR_REGISTRY_FILE_LOCATION)
+
+        self.registry_file_collection.add_child(self.error_registry_file)
+
+        self.thermal = Thermal("Thermal")
+
+        self.chassis.add_child(self.thermal)
+
+        self.power = Power("Power")
+
+        self.chassis.add_child(self.power)
+
 #       Experimental code for sensors. Would remove this later
 #        self.provider.get_fan_speed()
-#        for sensors in SENSORS_INFO.keys():
-#            value = self.provider.get_sensors(sensors)
-#            self.provider.print_dict("", value)
+        for sensors in SENSORS_INFO.keys():
+            value = self.provider.get_sensors(sensors)
+            self.provider.print_dict("", value)
 
     def print_all(self):
         self.root.print_all()

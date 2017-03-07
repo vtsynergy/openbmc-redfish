@@ -22,7 +22,9 @@ get_paths = ['redfish',
              'redfish/v1/Systems/0000000000000000/Memory/DIMM2',
              'redfish/v1/Systems/0000000000000000/Memory/DIMM3',
              'redfish/v1/Chassis',
-             'redfish/v1/Chassis/1U']
+             'redfish/v1/Chassis/1U',
+             'redfish/v1/Chassis/1U/Thermal',
+             'redfish/v1/Chassis/1U/Power']
 
 for path in get_paths:
     path_list = path.split('/')
