@@ -1,18 +1,14 @@
-#! /usr/bin/env python
+"""
+ Author: Anshuman Verma
+ Date  : Oct 5, 2016
+ Description : Resource for Redfish
+ Redfish Resource Types
+"""
 
-# Author: Anshuman Verma
-# Date  : Oct 5, 2016
-# Description : Resource for Redfish
-
-import sys
 import json
 from obmc_redfish_providers import *
 from redfish_eventer import *
 from redfish_message_registry import *
-
-"""
-Redfish Resource Types
-"""
 
 REDFISH_VERSION = str("1.0.3")
 REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
@@ -78,6 +74,14 @@ class RedfishBase(object):
                     "." + path_list[0] + "json")
         return web_link
 
+    def get_document(self):
+        doc = {}
+        doc["name"] = self.name
+        doc["kind"] = "singleton"
+        doc["url"] = self.path
+        doc["reference"] = self.get_redfish_web_link()
+        return doc
+
     def update_metadata_path(self):
         self.self_metadata_path = (self.parent.child_metadata_path +
                                    "$entity")
@@ -113,7 +117,8 @@ class RedfishBase(object):
         function in inherited classes to update the information"""
         self.attrs[ODATA_CONTEXT] = self.self_metadata_path
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
+#        For Debug: FIXME: remvoe this attribute,
+#        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -347,7 +352,7 @@ class Chassis(RedfishBase):
 
     def fill_dynamic_data(self):
         super(Chassis, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
@@ -393,7 +398,7 @@ class System(RedfishBase):
 
     def fill_dynamic_data(self):
         super(System, self).fill_dynamic_data()
-        led_state = self.provider.led_operation('state', 'identify')
+        led_state = self.provider.led_operation('State', 'identify')
         if led_state is not None:
             self.attrs['IndicatorLed'] = led_state
         self.attrs['PowerState'] = self.provider.get_system_state()
@@ -414,12 +419,12 @@ class EventDestinationCollection(RedfishCollectionBase):
         super(EventDestinationCollection, self).__init__(name)
 
 
-class ErrorRegistryFile(RedfishBase):
+class ErrorRegistryFile(EventService):
     """Error Registry File Resource"""
 
-    def __init__(self, location):
+    def __init__(self, name, location):
         super(EventService, self).__init__(name)
-        self.attrs["Location"] = ERROR_REGISTRY_FILE_LOCATION
+        self.attrs["Location"] = location
 
 
 class RegistryFileCollection(RedfishCollectionBase):
@@ -536,8 +541,6 @@ class RedfishBottleRoot(object):
 
         self.chassis_info = self.provider.get_chassis_info()
 
-        print self.chassis_info
-
         self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
 
@@ -604,7 +607,8 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.registry_file_collection)
 
         self.error_registry_file = \
-            ErrorRegistryFile(ERROR_REGISTRY_FILE_LOCATION)
+            ErrorRegistryFile("Error Registry File",
+                              ERROR_REGISTRY_FILE_LOCATION)
 
         self.registry_file_collection.add_child(self.error_registry_file)
 
@@ -620,13 +624,31 @@ class RedfishBottleRoot(object):
 #        self.provider.get_fan_speed()
         for sensors in SENSORS_INFO.keys():
             value = self.provider.get_sensors(sensors)
-            self.provider.print_dict("", value)
+            print_dict("", value)
 
     def print_all(self):
         self.root.print_all()
 
+    def get_odata_document(self):
+        q = []
+        document = {}
+        document[ODATA_CONTEXT] = '/redfish/v1/$metadata'
+        document['value'] = []
+        q.append(self.root)
+        while len(q):
+            children = q.pop(-1)
+            document['value'].append(children.get_document())
+            for subchild in children.child:
+                q.append(subchild)
+        return json.dumps(document)
+
     def get_json(self, path):
-        return self.root.get_export_data(path)
+        if len(path) == 3 and path[0] == 'redfish' \
+                and path[1] == 'v1' and path[2] == '$metadata':
+                    print "Getting Metadata"
+                    return self.get_odata_document()
+        else:
+            return self.root.get_export_data(path)
 
     def do_action(self, path, obj):
         return self.root.action(path, obj)

@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # Description : Message Registry for OpenBMC Redfish
 
 import json
