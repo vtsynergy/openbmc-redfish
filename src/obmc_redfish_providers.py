@@ -81,16 +81,6 @@ def fix_byte(it, key, parent):
             parent[key] = float(it)
 
 
-def print_dict(name, data):
-    if (isinstance(data, dict)):
-        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-        print name
-        for p in sorted(data.keys()):
-            print_dict(p, data[p])
-    else:
-        print name+" = "+str(data)
-
-
 class ObmcRedfishProviders(object):
     """OpenBMC Redfish Providers using DBUS"""
 

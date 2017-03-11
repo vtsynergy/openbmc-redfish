@@ -26,6 +26,16 @@ ERROR_REGISTRY_FILE_LOCATION = 'error_message_registry.json'
 REGISTRY_FILES = [ERROR_REGISTRY_FILE_LOCATION]
 
 
+def print_dict(name, data):
+    if (isinstance(data, dict)):
+        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+        print name
+        for p in sorted(data.keys()):
+            print_dict(p, data[p])
+    else:
+        print name+" = "+str(data)
+
+
 class RedfishBase(object):
     """Base class for Redfish Obejcts"""
 
