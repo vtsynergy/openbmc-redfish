@@ -78,8 +78,8 @@ class RedfishServer(Bottle):
     def install_handlers(self):
         self.get_request_handler.install()
 
-## FIXME: I don't think this would be needed if we had more than a single route
-## that matches everything.
+# FIXME: I don't think this would be needed if we had more than a single route
+# that matches everything.
 #    def custom_router_match(self, environ):
 #        ''' The built-in Bottle algorithm for figuring out if a 404 or 405 is
 #            needed doesn't work for us since the instance rules match

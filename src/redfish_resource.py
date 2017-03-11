@@ -73,7 +73,7 @@ class RedfishBase(object):
         web_link = (REDFISH_SCHEMA_WEB_LINK + "/" + self.namespace +
                     "." + path_list[0] + "json")
         return web_link
-    
+
     def get_document(self):
         doc = {}
         doc["name"] = self.name
@@ -607,7 +607,8 @@ class RedfishBottleRoot(object):
         self.v1.add_child(self.registry_file_collection)
 
         self.error_registry_file = \
-            ErrorRegistryFile("Error Registry File", ERROR_REGISTRY_FILE_LOCATION)
+            ErrorRegistryFile("Error Registry File",
+                              ERROR_REGISTRY_FILE_LOCATION)
 
         self.registry_file_collection.add_child(self.error_registry_file)
 

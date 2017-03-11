@@ -65,6 +65,7 @@ LED_TYPE = ['identify', 'power', 'heartbeat']
 #                    'SYSTEM_EVENT',
 #                    'MEMORY_BUFFER']
 
+
 def fix_byte(it, key, parent):
     if (isinstance(it, dbus.Array)):
         for i in range(0, len(it)):
@@ -78,6 +79,7 @@ def fix_byte(it, key, parent):
     elif (isinstance(it, dbus.Double)):
         if key is not None:
             parent[key] = float(it)
+
 
 def print_dict(name, data):
     if (isinstance(data, dict)):
@@ -103,8 +105,7 @@ class ObmcRedfishProviders(object):
         merged = {}
         for op in object.keys():
             for property, value in object[op].items():
-                if property == 'fru_type' and \
-                    value == name:
+                if property == 'fru_type' and value == name:
                     merged[op] = object[op]
         return merged
 
@@ -136,7 +137,7 @@ class ObmcRedfishProviders(object):
                                                       self.inventory_data)
         return inventory_object
 
-#FIXME: Not all sensors are implemented in this, use nameserver! 
+# FIXME: Not all sensors are implemented in this, use nameserver!
     def get_sensors(self, sensor):
         sensor_values = {}
         sensor_values['type'] = sensor

@@ -12,4 +12,3 @@
 # (though only a few resources can be completely replaced).  HEAD is similar to
 # GET without the body data returned, and can be used for figuring out the URI
 # structure by programs accessing a Redfish implementation.
-

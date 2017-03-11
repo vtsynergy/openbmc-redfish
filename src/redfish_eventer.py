@@ -45,7 +45,7 @@ class EventRecord(object):
         self.attrs = {}
         self.attrs[EVENT_RECORD_PROPS['EVENT_TYPE']] = event_type
         self.attrs[EVENT_RECORD_PROPS['MESSAGE_ID']] = message_id
-        #TODO add event UUID
+        # TODO add event UUID
         self.attrs[EVENT_RECORD_PROPS['EVENT_RECORD_ID']] = ''
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -108,8 +108,8 @@ class Eventer(object):
         Writes these changes to persistent memory
         """
         deleted_resource_id = self.client_URI_endpoints.pop(url)
-        #TODO del subscription resource from EventDestinationCollection resrc
-        #TODO implement remove resource method for CollectionResources
+        # TODO del subscription resource from EventDestinationCollection resrc
+        # TODO implement remove resource method for CollectionResources
         self.write_subscriptions_to_tmp(self.client_URI_endpoints)
 
     def byteify(self, input):
