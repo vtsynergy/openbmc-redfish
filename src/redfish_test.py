@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import json
-import sys
 from redfish_resource import *
 
 """Temporary module to check the functionality on OpenBMC without running
