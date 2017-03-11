@@ -6,6 +6,8 @@
 
 import json
 import dbus
+import obmc.mapper
+import obmc.utils.misc
 
 
 POWER_CONTROL = {'On': 'powerOn',
@@ -63,6 +65,29 @@ LED_TYPE = ['identify', 'power', 'heartbeat']
 #                    'SYSTEM_EVENT',
 #                    'MEMORY_BUFFER']
 
+def fix_byte(it, key, parent):
+    if (isinstance(it, dbus.Array)):
+        for i in range(0, len(it)):
+            fix_byte(it[i], i, it)
+    elif (isinstance(it, dict)):
+        for key in it.keys():
+            fix_byte(it[key], key, it)
+    elif (isinstance(it, dbus.Byte)):
+        if key is not None:
+            parent[key] = int(it)
+    elif (isinstance(it, dbus.Double)):
+        if key is not None:
+            parent[key] = float(it)
+
+def print_dict(name, data):
+    if (isinstance(data, dict)):
+        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+        print name
+        for p in sorted(data.keys()):
+            print_dict(p, data[p])
+    else:
+        print name+" = "+str(data)
+
 
 class ObmcRedfishProviders(object):
     """OpenBMC Redfish Providers using DBUS"""
@@ -70,68 +95,38 @@ class ObmcRedfishProviders(object):
     def __init__(self):
         """Initialize the class"""
         self.bus = dbus.SystemBus()
+        self.mapper = obmc.mapper.Mapper(self.bus)
 
         self.inventory_data = None
 
-# FIXME: This doesn't need to be a member function -- Brad
-    def fix_byte(self, it, key, parent):
-        if (isinstance(it, dbus.Array)):
-            for i in range(0, len(it)):
-                self.fix_byte(it[i], i, it)
-        elif (isinstance(it, dict)):
-            for key in it.keys():
-                self.fix_byte(it[key], key, it)
-        elif (isinstance(it, dbus.Byte)):
-            if key is not None:
-                parent[key] = int(it)
-        elif (isinstance(it, dbus.Double)):
-            if key is not None:
-                parent[key] = float(it)
-
     def find_inventory_object(self, name, object):
         merged = {}
-        for op in object:
+        for op in object.keys():
             for property, value in object[op].items():
-                if value['fru_type'] == name:
-                    merged[op] = value
+                if property == 'fru_type' and \
+                    value == name:
+                    merged[op] = object[op]
         return merged
-
-# FIXME: A placeholder, Would remove it
-#    def get_system_count(self):
-#        return 2
 
     def find_sensor_value(self, name, object):
         merged = {}
-        for op in object:
+        for op in object.keys():
             p_op = op.split('/')
             if p_op[-1] == name:
-                for prop, value in object[op].items():
-                    merged.update(value)
-        return merged
+                return object[op]
 
-# FIXME: A Non-member function 
-    def print_dict(self, name, data):
-        if (isinstance(data, dict)):
-            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-            print name
-            for p in sorted(data.keys()):
-                    self.print_dict(p, data[p])
-        else:
-            print name+" = "+str(data)
+    def get_enumerated_obj(self, path='/'):
+        sub_tree = self.mapper.get_subtree(path=path)
+        return {x: y for x, y in self.mapper.enumerate_subtree(
+                path, mapper_data=sub_tree).dataitems()}
 
-# FIXME: We have a 'nameserver' with python bindings that lets you look these
-# up. It is used extensively in the existing rest server if an example would
-# help. FIX the return value argument
+
+# FIXME: FIX the return value argument
     def get_inventory(self, name):
         if self.inventory_data is None:
-            obj = self.bus.get_object('org.openbmc.Inventory',
-                                      '/org/openbmc/inventory')
-            intf = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
-            mthd = obj.get_dbus_method("GetManagedObjects",
-                                       'org.freedesktop.DBus.ObjectManager')
             try:
-                data = mthd()
-                self.fix_byte(data, None, None)
+                data = self.get_enumerated_obj('org/openbmc/inventory')
+                fix_byte(data, None, None)
                 self.inventory_data = json.loads(json.dumps(data))
             except Exception as e:
                 print e
@@ -145,14 +140,9 @@ class ObmcRedfishProviders(object):
     def get_sensors(self, sensor):
         sensor_values = {}
         sensor_values['type'] = sensor
-        obj = self.bus.get_object('org.openbmc.Sensors',
-                                  '/org/openbmc/sensors')
-        intf = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
-        mthd = obj.get_dbus_method("GetManagedObjects",
-                                   'org.freedesktop.DBus.ObjectManager')
         try:
-            data = mthd()
-            self.fix_byte(data, None, None)
+            data = self.get_enumerated_obj('org/openbmc/sensors')
+            fix_byte(data, None, None)
             pydata = json.loads(json.dumps(data))
             s_value = self.find_sensor_value(SENSORS_INFO[sensor], pydata)
             for item, values in s_value.items():
@@ -180,7 +170,7 @@ class ObmcRedfishProviders(object):
                                    'org.openbmc.managers.System')
         try:
             data = mthd()
-            self.fix_byte(data, None, None)
+            fix_byte(data, None, None)
             pydata = json.loads(json.dumps(data))
             return SYSTEM_STATES[pydata]
         except Exception as e:
@@ -363,7 +353,7 @@ class ObmcRedfishProviders(object):
                                   '/org/openbmc/settings/host0')
         intf = dbus.Interface(obj, 'org.freedesktop.Dbus.Properties')
         data = intf.GetAll('org.openbmc.settings.Host')
-        self.fix_byte(data, None, None)
+        fix_byte(data, None, None)
         pydata = json.loads(json.dumps(data))
         print pydata
 
@@ -378,6 +368,6 @@ class ObmcRedfishProviders(object):
                                   '/org/openbmc/control/fans')
         intf = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
         data = intf.GetAll('org.openbmc.control.Fans')
-        self.fix_byte(data, None, None)
+        fix_byte(data, None, None)
         pydata = json.loads(json.dumps(data))
         print pydata

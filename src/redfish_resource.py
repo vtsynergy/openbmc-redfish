@@ -73,6 +73,14 @@ class RedfishBase(object):
         web_link = (REDFISH_SCHEMA_WEB_LINK + "/" + self.namespace +
                     "." + path_list[0] + "json")
         return web_link
+    
+    def get_document(self):
+        doc = {}
+        doc["name"] = self.name
+        doc["kind"] = "singleton"
+        doc["url"] = self.path
+        doc["reference"] = self.get_redfish_web_link()
+        return doc
 
     def update_metadata_path(self):
         self.self_metadata_path = (self.parent.child_metadata_path +
@@ -533,8 +541,6 @@ class RedfishBottleRoot(object):
 
         self.chassis_info = self.provider.get_chassis_info()
 
-        print self.chassis_info
-
         self.system = System(self.chassis_info['SerialNumber'],
                              self.chassis_info)
 
@@ -617,13 +623,31 @@ class RedfishBottleRoot(object):
 #        self.provider.get_fan_speed()
         for sensors in SENSORS_INFO.keys():
             value = self.provider.get_sensors(sensors)
-            self.provider.print_dict("", value)
+            print_dict("", value)
 
     def print_all(self):
         self.root.print_all()
 
+    def get_odata_document(self):
+        q = []
+        document = {}
+        document[ODATA_CONTEXT] = '/redfish/v1/$metadata'
+        document['value'] = []
+        q.append(self.root)
+        while len(q):
+            children = q.pop(-1)
+            document['value'].append(children.get_document())
+            for subchild in children.child:
+                q.append(subchild)
+        return json.dumps(document)
+
     def get_json(self, path):
-        return self.root.get_export_data(path)
+        if len(path) == 3 and path[0] == 'redfish' \
+                and path[1] == 'v1' and path[2] == '$metadata':
+                    print "Getting Metadata"
+                    return self.get_odata_document()
+        else:
+            return self.root.get_export_data(path)
 
     def do_action(self, path, obj):
         return self.root.action(path, obj)

@@ -3,7 +3,6 @@
 import sys
 import os
 import logging
-# FIXME: Remove what I don't use
 from bottle import Bottle, abort, request, response, JSONPlugin, HTTPError
 from redfish_resource import *
 from rocket import Rocket
@@ -67,10 +66,9 @@ class GetRequestHandler(RouteHandler):
 
 class RedfishServer(Bottle):
 
-    def __init__(self):
+    def __init__(self, root):
         super(RedfishServer, self).__init__(autojson=False)
-# FIXME: can you pass the provider as an argument?
-        self.redfish_root = RedfishBottleRoot()
+        self.redfish_root = root
         self.create_handlers()
         self.install_handlers()
 
@@ -80,28 +78,29 @@ class RedfishServer(Bottle):
     def install_handlers(self):
         self.get_request_handler.install()
 
-# FIXME: I don't think this would be needed if we had more than a single route
-# that matches everything.
-    def custom_router_match(self, environ):
-        ''' The built-in Bottle algorithm for figuring out if a 404 or 405 is
-            needed doesn't work for us since the instance rules match
-            everything. This monkey-patch lets the route handler figure
-            out which response is needed.  This could be accomplished
-            with a hook but that would require calling the router match
-            function twice.
-        '''
-        route, args = self.real_router_match(environ)
-        if isinstance(route.callback, RouteHandler):
-            route.callback._setup(**args)
-
-        return route, args
+## FIXME: I don't think this would be needed if we had more than a single route
+## that matches everything.
+#    def custom_router_match(self, environ):
+#        ''' The built-in Bottle algorithm for figuring out if a 404 or 405 is
+#            needed doesn't work for us since the instance rules match
+#            everything. This monkey-patch lets the route handler figure
+#            out which response is needed.  This could be accomplished
+#            with a hook but that would require calling the router match
+#            function twice.
+#        '''
+#        route, args = self.real_router_match(environ)
+#        if isinstance(route.callback, RouteHandler):
+#            route.callback._setup(**args)
+#
+#        return route, args
 
 if __name__ == '__main__':
     log = logging.getLogger('Rocket.Errors')
     log.setLevel(logging.INFO)
     log.addHandler(logging.StreamHandler(sys.stdout))
+    redfish_root = RedfishBottleRoot()
 
-    app = RedfishServer()
+    app = RedfishServer(redfish_root)
     default_cert = os.path.join(
         sys.prefix, 'share', os.path.basename(__file__), 'cert.pem')
 
