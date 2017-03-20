@@ -71,6 +71,8 @@ class RedfishBase(object):
 
         self.version = ""
 
+        self.message_registry = MessageRegistry(REGISTRY_FILES)
+
     def get_redfish_web_link(self):
         """Returns the link of online schema at redfish website, use it to
         create metadata document"""
@@ -127,8 +129,6 @@ class RedfishBase(object):
         function in inherited classes to update the information"""
         self.attrs[ODATA_CONTEXT] = self.self_metadata_path
         self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
-#        For Debug: FIXME: remvoe this attribute,
-#        self.attrs["WEB_LINK"] = self.get_redfish_web_link()
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -148,14 +148,19 @@ class RedfishBase(object):
         """FIXME: this with correct functions calls in case of error"""
         if op[0] != self.name or len(op) == 0:
             print "Error:" + self.name + str(len(op)) + str(op[0])
-            return "Error: Last name did not match" + self.name
+            return self.message_registry.get_error_message(
+                    ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", op[0])
         elif len(op) > 1:
             for children in self.child:
                 if children.name == op[1]:
                     op.pop(0)
                     return children.get_export_data(op)
             else:
-                return "Error: Child does not exist"
+                return self.message_registry.get_error_message(
+                        ERROR_REGISTRY_FILE_LOCATION,
+                        "ResourceDoesNotExist", op[1])
+            
+            "Error: Child does not exist"
         else:
             if self.static_data_filled == 0:
                 self.fill_static_data()
@@ -534,7 +539,6 @@ class RedfishBottleRoot(object):
 
         self.eventer = Eventer(False, 3, 5)
 
-        self.message_registry = MessageRegistry(REGISTRY_FILES)
 
         self.root = RedfishRoot("redfish", self.provider)
 
@@ -655,7 +659,6 @@ class RedfishBottleRoot(object):
     def get_json(self, path):
         if len(path) == 3 and path[0] == 'redfish' \
                 and path[1] == 'v1' and path[2] == '$metadata':
-                    print "Getting Metadata"
                     return self.get_odata_document()
         else:
             return self.root.get_export_data(path)

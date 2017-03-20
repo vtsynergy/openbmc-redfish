@@ -1,5 +1,13 @@
 {
   "Messages": {
+    "ResourceDoesNotExist" : {
+      "Description": "The requested resource does not exist",
+      "MessageId":"ResourceDoesNotExist",
+      "NumberOfArgs": 1,
+      "Message": "The resource %1 in provided URI does not exist",
+      "Severity": "Warning",
+      "Resolution": "Update the URI for resource and resubmit the request if the operation failed"
+    },
     "PropertyValueNotInList" : {
       "Description": "The requested property is not in the list of properties for the resource",
       "MessageId":"PropertyValueNotInList",

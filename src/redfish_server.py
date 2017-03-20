@@ -33,6 +33,13 @@ class RouteHandler(object):
             self._rules, callback=self,
             method=['GET', 'PUT', 'PATCH', 'POST', 'DELETE'])
 
+    def is_error(self, packet):
+        data = json.loads(packet)
+        if "error" in data.keys():
+            return True 
+        else:
+            return False
+
 
 class GetRequestHandler(RouteHandler):
     verbs = ['GET', 'POST']
@@ -45,8 +52,12 @@ class GetRequestHandler(RouteHandler):
     def find(self, path='/'):
         """provide the path to redfish build tree and get a response"""
         path_list = path.split('/')
-        print path_list
-        return self.redfish.get_json(path_list)
+        server_data = self.redfish.get_json(path_list)
+        if self.is_error(server_data) is True:
+            raise HTTPError(404, server_data)
+        else:
+            return server_data
+        
 
     def setup(self, path='/'):
         request.route_data['map'] = self.find(path)
@@ -57,7 +68,6 @@ class GetRequestHandler(RouteHandler):
     def find_post(self, path='/'):
         """provide the path to redfish build tree and get a response"""
         path_list = path.split('/')
-        print path_list
         return self.redfish.do_action(path_list, request)
 
     def do_post(self, path):
@@ -78,21 +88,6 @@ class RedfishServer(Bottle):
     def install_handlers(self):
         self.get_request_handler.install()
 
-# FIXME: I don't think this would be needed if we had more than a single route
-# that matches everything.
-#    def custom_router_match(self, environ):
-#        ''' The built-in Bottle algorithm for figuring out if a 404 or 405 is
-#            needed doesn't work for us since the instance rules match
-#            everything. This monkey-patch lets the route handler figure
-#            out which response is needed.  This could be accomplished
-#            with a hook but that would require calling the router match
-#            function twice.
-#        '''
-#        route, args = self.real_router_match(environ)
-#        if isinstance(route.callback, RouteHandler):
-#            route.callback._setup(**args)
-#
-#        return route, args
 
 if __name__ == '__main__':
     log = logging.getLogger('Rocket.Errors')
