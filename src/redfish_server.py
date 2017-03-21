@@ -36,7 +36,7 @@ class RouteHandler(object):
     def is_error(self, packet):
         data = json.loads(packet)
         if "error" in data.keys():
-            return True 
+            return True
         else:
             return False
 
@@ -57,7 +57,6 @@ class GetRequestHandler(RouteHandler):
             raise HTTPError(404, server_data)
         else:
             return server_data
-        
 
     def setup(self, path='/'):
         request.route_data['map'] = self.find(path)

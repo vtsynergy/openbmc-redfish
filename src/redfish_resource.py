@@ -149,7 +149,8 @@ class RedfishBase(object):
         if op[0] != self.name or len(op) == 0:
             print "Error:" + self.name + str(len(op)) + str(op[0])
             return self.message_registry.get_error_message(
-                    ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", op[0])
+                    ERROR_REGISTRY_FILE_LOCATION,
+                    "ResourceDoesNotExist", op[0])
         elif len(op) > 1:
             for children in self.child:
                 if children.name == op[1]:
@@ -172,7 +173,7 @@ class RedfishBase(object):
         """FIXME: Fill in the details for Error Class"""
         if path[0] != self.name or len(path) == 1:
             return self.message_registry.get_error_message(
-                    ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                    ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist",
                     path[0])
         elif len(path) > 3:
             for children in self.child:
@@ -181,12 +182,12 @@ class RedfishBase(object):
                     return children.action(path, op)
             else:
                 return self.message_registry.get_error_message(
-                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist",
                         path[1])
         else:
             if path[1] != 'Actions':
                 return self.message_registry.get_error_message(
-                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist",
                         path[1])
             else:
                 action_list = path[2].split('.')
@@ -208,12 +209,12 @@ class RedfishBase(object):
                         except ValueError:
                             return self.message_registry.get_error_message(
                                     ERROR_REGISTRY_FILE_LOCATION,
-                                    "PropertyValueNotInList", 
+                                    "PropertyValueNotInList",
                                     action, "Method does not exist")
                         if method_arg is None:
                             return self.message_registry.get_error_message(
                                     ERROR_REGISTRY_FILE_LOCATION,
-                                    "PropertyValueNotInList", 
+                                    "PropertyValueNotInList",
                                     action, "None")
                         if method_arg in self.actions[action]:
                             print "Argument is " + str(method_arg)
@@ -221,17 +222,17 @@ class RedfishBase(object):
                         else:
                             return self.message_registry.get_error_message(
                                     ERROR_REGISTRY_FILE_LOCATION,
-                                    "PropertyValueNotInList", 
+                                    "PropertyValueNotInList",
                                     action, method_arg)
                     except AttributeError:
                         return self.message_registry.get_error_message(
                                 ERROR_REGISTRY_FILE_LOCATION,
-                                "ResourceDoesNotExist", 
+                                "ResourceDoesNotExist",
                                 action)
                 else:
                     return self.message_registry.get_error_message(
                             ERROR_REGISTRY_FILE_LOCATION,
-                            "ResourceDoesNotExist", 
+                            "ResourceDoesNotExist",
                             action)
                 print uri_namespace + action + str(op.POST.items())
                 return
@@ -561,7 +562,6 @@ class RedfishBottleRoot(object):
         self.provider = ObmcRedfishProviders()
 
         self.eventer = Eventer(False, 3, 5)
-
 
         self.root = RedfishRoot("redfish", self.provider)
 

@@ -2,22 +2,22 @@
 
 import json
 
+
 class MessageRegistry(object):
 
     """Base class for Redfish Message Registries"""
 
     def __init__(self, registries_on_file=[]):
         self.registries = registries_on_file
-        self.err_msg = {"error": 
-                            {"code" : "Base.1.0.GeneralError",
-                             "Message" : "A general error has occured. See" +
-                             " Extended info for more information"}
-                        }
+        self.err_msg = {"error":
+                        {"code": "Base.1.0.GeneralError",
+                         "Message": "A general error has occured. See" +
+                         " Extended info for more information"}}
 
-    def get_error_message(self,registry_id, message_id, *args):
+    def get_error_message(self, registry_id, message_id, *args):
         if registry_id in self.registries:
             self.err_msg["error"]["@Message.ExtendedInfo"] = \
-                self.get_message(registry_id,message_id,args)
+                self.get_message(registry_id, message_id, args)
         return json.dumps(self.err_msg)
 
     def get_message(self, registry_id, message_id, args):
