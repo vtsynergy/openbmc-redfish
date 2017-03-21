@@ -159,8 +159,6 @@ class RedfishBase(object):
                 return self.message_registry.get_error_message(
                         ERROR_REGISTRY_FILE_LOCATION,
                         "ResourceDoesNotExist", op[1])
-            
-            "Error: Child does not exist"
         else:
             if self.static_data_filled == 0:
                 self.fill_static_data()
@@ -173,18 +171,23 @@ class RedfishBase(object):
         """Perfrom the requested action and return the information"""
         """FIXME: Fill in the details for Error Class"""
         if path[0] != self.name or len(path) == 1:
-            print "[ACTION] Error: " + self.name + str(len(op)) + str(op[0])
+            return self.message_registry.get_error_message(
+                    ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                    path[0])
         elif len(path) > 3:
             for children in self.child:
                 if children.name == path[1]:
                     path.pop(0)
                     return children.action(path, op)
             else:
-                return "Error [ACTION]: Path not correct"
+                return self.message_registry.get_error_message(
+                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                        path[1])
         else:
             if path[1] != 'Actions':
-                print path
-                return "Error: Action URI is incorrect" + self.name
+                return self.message_registry.get_error_message(
+                        ERROR_REGISTRY_FILE_LOCATION, "ResourceDoesNotExist", 
+                        path[1])
             else:
                 action_list = path[2].split('.')
                 uri_namespace = action_list[0]
@@ -194,22 +197,42 @@ class RedfishBase(object):
                     self.fill_static_data()
                     self.static_data_filled = 1
                 self.fill_dynamic_data()
+                print action
+                print action_type
                 if action in self.actions.keys():
                     try:
                         method = getattr(self, str(action.lower()))
-                        method_arg = op.json[action_type]
+                        try:
+                            method_arg = op.json[action_type]
+                            print method_arg
+                        except ValueError:
+                            return self.message_registry.get_error_message(
+                                    ERROR_REGISTRY_FILE_LOCATION,
+                                    "PropertyValueNotInList", 
+                                    action, "Method does not exist")
                         if method_arg is None:
-                            return "Argument is not available"
+                            return self.message_registry.get_error_message(
+                                    ERROR_REGISTRY_FILE_LOCATION,
+                                    "PropertyValueNotInList", 
+                                    action, "None")
                         if method_arg in self.actions[action]:
                             print "Argument is " + str(method_arg)
                             method(method_arg)
                         else:
-                            return "FIXME: Error:argument " + method_arg
-                        print method_arg
+                            return self.message_registry.get_error_message(
+                                    ERROR_REGISTRY_FILE_LOCATION,
+                                    "PropertyValueNotInList", 
+                                    action, method_arg)
                     except AttributeError:
-                        return "FIXME: Error method does not exist"
+                        return self.message_registry.get_error_message(
+                                ERROR_REGISTRY_FILE_LOCATION,
+                                "ResourceDoesNotExist", 
+                                action)
                 else:
-                    print "FIXME: return error object " + action + " is undef"
+                    return self.message_registry.get_error_message(
+                            ERROR_REGISTRY_FILE_LOCATION,
+                            "ResourceDoesNotExist", 
+                            action)
                 print uri_namespace + action + str(op.POST.items())
                 return
 

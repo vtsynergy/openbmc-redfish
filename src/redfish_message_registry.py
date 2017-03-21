@@ -27,7 +27,6 @@ class MessageRegistry(object):
         will be interpolated into that message and packaged into 'Message' 4
         representation.
         """
-    
         with open(registry_id) as registry_file:
             registry = json.load(registry_file)
             if message_id in registry['Messages']:
