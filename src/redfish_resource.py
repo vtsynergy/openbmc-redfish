@@ -448,7 +448,11 @@ class EventService(RedfishBase):
 
     def __init__(self, name):
         super(EventService, self).__init__(name)
-        self.attrs["ServiceEnabled"] = False
+        self.namespace = "EventService"
+        self.version = "v1_0_2.EventService"
+        self.attrs["ServiceEnabled"] = True
+        self.attrs["Name"] = "Event Service"
+
 
 
 class EventDestinationCollection(RedfishCollectionBase):
@@ -629,7 +633,7 @@ class RedfishBottleRoot(object):
 
         self.v1.add_child(self.registries)
 
-        self.event_service = EventService("Event Service")
+        self.event_service = EventService("EventService")
 
         self.v1.add_child(self.event_service)
 
