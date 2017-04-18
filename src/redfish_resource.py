@@ -59,8 +59,6 @@ class RedfishBase(object):
         the flag when the static data is filled, would be updated when the
         resource is queried for the first time"""
 
-        self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
-
         self.self_metadata_path = ""
         """Hardcoded the above, need to get it updated when adding metadata
         functionality"""
@@ -70,6 +68,10 @@ class RedfishBase(object):
         self.namespace = ""
 
         self.version = ""
+
+        self.is_leaf = False
+        """Flag to show if the node if a leaf, useful for objects that are
+        embedded into a node"""
 
         self.message_registry = MessageRegistry(REGISTRY_FILES)
 
@@ -103,11 +105,14 @@ class RedfishBase(object):
     def add_child(self, obj):
         """Add a child to the node"""
         self.child.append(obj)
-        obj.path = str(self.path + "/" + obj.name)
         obj.parent = self
-        obj.attrs[ODATA_ID] = obj.path
         obj.provider = self.provider
-        obj.update_metadata_path()
+        if obj.is_leaf is False:
+            obj.path = str(self.path + "/" + obj.name)
+            obj.update_metadata_path()
+        else:
+            obj.path = str(self.path + "#/" + obj.name)
+        obj.attrs[ODATA_ID] = obj.path
 
     def print_attr(self):
         """debug function for printing values"""
@@ -127,8 +132,10 @@ class RedfishBase(object):
     def fill_static_data(self):
         """Fill the static attributes of attrs dictonary at build. Extend this
         function in inherited classes to update the information"""
-        self.attrs[ODATA_CONTEXT] = self.self_metadata_path
-        self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+        if self.is_leaf is False:
+            self.attrs[ODATA_CONTEXT] = self.self_metadata_path
+            self.attrs[ODATA_TYPE] = "#" + self.namespace + "." + self.version
+            self.attrs["@Redfish.Copyright"] = REDFISH_COPY_RIGHT
 
     def fill_dynamic_data(self):
         """Update or fill the attributes of attrs dictonary when a get request
@@ -448,7 +455,10 @@ class EventService(RedfishBase):
 
     def __init__(self, name):
         super(EventService, self).__init__(name)
-        self.attrs["ServiceEnabled"] = False
+        self.namespace = "EventService"
+        self.version = "v1_0_2.EventService"
+        self.attrs["ServiceEnabled"] = True
+        self.attrs["Name"] = "Event Service"
 
 
 class EventDestinationCollection(RedfishCollectionBase):
@@ -542,6 +552,26 @@ class Power(RedfishBase):
         self.attrs["Id"] = name
         self.namespace = "Power"
         self.version = "v1_2_0.Power"
+        self.powercontrol = []
+        self.powersupplies = []
+
+    def add_child(self, obj):
+        super(Power, self).add_child(obj)
+        if isinstance(obj, PowerControl) is True:
+            self.powercontrol.append(obj)
+        if isinstance(obj, PowerSupplies) is True:
+            self.powersupplies.append(obj)
+
+    def fill_dynamic_data(self):
+        super(Power, self).fill_dynamic_data()
+        self.attrs["PowerControl"] = []
+        self.attrs["PowerSupplies"] = []
+        for p in self.powercontrol:
+            p.fill_dynamic_data()
+            self.attrs["PowerControl"].append(p.attrs)
+        for p in self.powersupplies:
+            p.fill_dynamic_data()
+            self.attrs["PowerSupplies"].append(p.attrs)
 
 
 class Thermal(RedfishBase):
@@ -552,6 +582,63 @@ class Thermal(RedfishBase):
         self.attrs["Id"] = name
         self.namespace = "Thermal"
         self.version = "v1_1_0.Thermal"
+
+
+class PowerSupplies(RedfishBase):
+    """Power Control Information"""
+
+    def __init__(self, name, instance_id):
+        super(PowerSupplies, self).__init__(name)
+        self.attrs["Id"] = name
+        self.attrs["Name"] = instance_id
+        self.is_leaf = True
+
+    def fill_dynamic_data(self):
+        self.attrs["PowerSupplyType"] = "TBD"
+        self.attrs["LineInputVoltageType"] = "TBD"
+        self.attrs["LineInputVoltage"] = -100
+        self.attrs["PowerCapacityWatts"] = -900
+        self.attrs["LastPowerOutputWatts"] = -900
+        self.attrs["Model"] = "TBD"
+        self.attrs["Manufacturer"] = "TBD"
+        self.attrs["FirmwareVersion"] = "TBD"
+        self.attrs["SerialNumber"] = "TBD"
+        self.attrs["PartNumber"] = "TBD"
+        self.attrs["SparePartNumber"] = "TBD"
+        self.attrs["InputRanges"] = [{"InputType": "TBD",
+                                      "MininmumVoltage": -100,
+                                      "MaximumVoltage": -100,
+                                      "OutputWattage": -100},
+                                     {"InputType": "TBD",
+                                      "MininmumVoltage": -100,
+                                      "MaximumVoltage": -100,
+                                      "OutputWattage": -100}]
+
+
+class PowerControl(RedfishBase):
+    """Power Control Information"""
+
+    def __init__(self, name, instance_id):
+        super(PowerControl, self).__init__(name)
+        self.attrs["Id"] = name
+        self.attrs["Name"] = instance_id
+        self.is_leaf = True
+
+    def fill_dynamic_data(self):
+        self.attrs["PowerConsumedWatts"] = -100
+        self.attrs["PowerRequestedWatts"] = -100
+        self.attrs["PowerAvaiableWatts"] = -100
+        self.attrs["PowerCapacityWatts"] = -900
+        self.attrs["PowerAllocatedWatts"] = -900
+        self.attrs["PowerMetrics"] = {"IntervalInMin": -100,
+                                      "MinConsumedWatts": -100,
+                                      "MaxConsumedWatts": -100,
+                                      "AverageConsumedWatts": -100}
+        self.attrs["PowerLimit"] = {"LimitInWatts": -100,
+                                    "LimitException": "LogEventOnly",
+                                    "CorrectionInMs": -100}
+        self.attrs["Status"] = {"State": "Enabled",
+                                "Health": "NOT OK"}
 
 
 class RedfishBottleRoot(object):
@@ -629,7 +716,7 @@ class RedfishBottleRoot(object):
 
         self.v1.add_child(self.registries)
 
-        self.event_service = EventService("Event Service")
+        self.event_service = EventService("EventService")
 
         self.v1.add_child(self.event_service)
 
@@ -657,6 +744,14 @@ class RedfishBottleRoot(object):
 
         self.chassis.add_child(self.power)
 
+        self.power_control = PowerControl("PowerControl", "Power Control")
+
+        self.power_supplies_0 = PowerSupplies("0", "Power Supplies")
+        self.power_supplies_1 = PowerSupplies("1", "Power Supplies")
+
+        self.power.add_child(self.power_control)
+        self.power.add_child(self.power_supplies_0)
+        self.power.add_child(self.power_supplies_1)
 #       Experimental code for sensors. Would remove this later
 #        self.provider.get_fan_speed()
         for sensors in SENSORS_INFO.keys():

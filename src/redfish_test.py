@@ -26,6 +26,7 @@ get_paths = ['redfish',
              'redfish/v1/uoio/1U/Thermal',
              'redfish/v1/Chassis/1U/dff',
              'redfish/v1/$metadata',
+             'redfish/v1/EventService',
              'redfish/v1/Chassis/1U/Power']
 
 for path in get_paths:
