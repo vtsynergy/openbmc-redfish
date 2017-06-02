@@ -27,6 +27,10 @@ get_paths = ['redfish',
              'redfish/v1/Chassis/1U/dff',
              'redfish/v1/$metadata',
              'redfish/v1/EventService',
+             'redfish/v1/SessionService',
+             'redfish/v1/SessionService/Sessions',
+             'redfish/v1/SessionService/Sessions/0',
+             'redfish/v1/SessionService/Sessions/1',
              'redfish/v1/Chassis/1U/Power']
 
 for path in get_paths:
