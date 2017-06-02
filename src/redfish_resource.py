@@ -9,6 +9,9 @@ import json
 from obmc_redfish_providers import *
 from redfish_eventer import *
 from redfish_message_registry import *
+import os
+import crypt
+import spwd
 
 REDFISH_VERSION = str("1.0.3")
 REDFISH_COPY_RIGHT = ("Copyright 2014-2016 Distributed Management "
@@ -141,6 +144,49 @@ class RedfishBase(object):
         """Update or fill the attributes of attrs dictonary when a get request
         is recieved. Extend in inherited classes"""
         pass
+
+    def post_req(self, op):
+        pass
+
+    def del_req(self, op):
+        pass
+
+    def del_data(self, path, op):
+        if path[0] != self.name or len(path) == 1:
+            print "Error:" + self.name + str(len(path)) + str(path[0])
+            return self.message_registry.get_error_message(
+                    ERROR_REGISTRY_FILE_LOCATION,
+                    "ResourceDoesNotExist", path[0])
+        elif len(path) > 2:
+            for children in self.child:
+                if children.name == path[1]:
+                    path.pop(0)
+                    return children.del_data(path, op)
+            else:
+                return self.message_registry.get_error_message(
+                        ERROR_REGISTRY_FILE_LOCATION,
+                        "ResourceDoesNotExist", path[1])
+        else:
+            return self.del_req(op)
+
+    def post_data(self, path, op):
+        """Empty post function"""
+        if path[0] != self.name or len(path) == 0:
+            print "Error:" + self.name + str(len(path)) + str(path[0])
+            return self.message_registry.get_error_message(
+                    ERROR_REGISTRY_FILE_LOCATION,
+                    "ResourceDoesNotExist", path[0])
+        elif len(path) > 1:
+            for children in self.child:
+                if children.name == path[1]:
+                    path.pop(0)
+                    return children.post_data(path, op)
+            else:
+                return self.message_registry.get_error_message(
+                        ERROR_REGISTRY_FILE_LOCATION,
+                        "ResourceDoesNotExist", path[1])
+        else:
+            return self.post_req(op)
 
     def add_related_object(self, name, obj):
         """Add a related object to this item"""
@@ -641,6 +687,117 @@ class PowerControl(RedfishBase):
                                 "Health": "NOT OK"}
 
 
+class SessionService(RedfishBase):
+    """Session Service for login and logout"""
+
+    def __init__(self, name, instance_id):
+        super(SessionService, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "SessionService"
+        self.version = "v1_0_2.SessionService"
+
+    def fill_static_data(self):
+        super(SessionService, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+        self.attrs["Description"] = "Session Service"
+        self.attrs["Status"] = {"State": "Enabled",
+                                "Health": "Ok"}
+        self.attrs["ServiceEnabled"] = "true"
+        self.attrs["SessionTimeout"] = "30"
+        for children in self.child:
+            self.attrs[children.name] = dict([(ODATA_TYPE, children.path)])
+
+
+class SessionCollection(RedfishCollectionBase):
+    """Class for Collection of Sessions"""
+
+    def __init__(self, name, instance_id):
+        super(SessionCollection, self).__init__(name)
+        self.instance_id = instance_id
+        self.namespace = "SessionCollection"
+        self.version = "v1_0_2.SessionCollection"
+
+    def fill_static_data(self):
+        super(SessionCollection, self).fill_static_data()
+        self.attrs["Name"] = self.instance_id
+
+    def authenticate(self, username, clear):
+        try:
+            encoded = spwd.getspnam(username)[1]
+            return encoded == crypt.crypt(clear, encoded)
+        except KeyError:
+            return False
+
+    def del_req(self, op):
+        for c in self.child:
+            if op == c.name:
+                i = 0
+                for k in self.attrs["Members"]:
+                    if k[ODATA_ID] == c.path:
+                        del self.attrs["Members"][i]
+                        print "deleted"
+                        self.attrs["Members@odata.count"] -= 1
+                    i = i+1
+
+    def post_req(self, op):
+        """Perfrom the requested action and return the information"""
+        try:
+            uname = op.json["UserName"]
+        except KeyError:
+            return self.message_registry.get_error_message(
+                ERROR_REGISTRY_FILE_LOCATION,
+                "PropertyValueNotInList",
+                "Username", "UserName is not provided")
+
+        try:
+            password = op.json["Password"]
+        except KeyError:
+            return self.message_registry.get_error_message(
+                ERROR_REGISTRY_FILE_LOCATION,
+                "PropertyValueNotInList",
+                "Password", "Password is not provided")
+
+        if not self.authenticate(uname, password):
+            return self.message_registry.get_error_message(
+                ERROR_REGISTRY_FILE_LOCATION,
+                "PropertyValueNotInList",
+                "Password", "Password and username does not match")
+        else:
+            """create a session login"""
+            print "Login Successful"
+            if self.static_data_filled == 0:
+                self.fill_static_data()
+            ret = {}
+            rand = int(os.urandom(64).encode('hex'), 16)
+            s_name = str(len(self.child))
+            session = Session(s_name, uname)
+            session.key = rand
+            self.add_child(session)
+            self.attrs["Members"].append(dict([(ODATA_ID, session.path)]))
+            session.attrs["Location"] = session.path
+            session.attrs["X-Auth-Token"] = rand
+            ret = session.get_export_data(s_name)
+            del session.attrs["Location"]
+            del session.attrs["X-Auth-Token"]
+            return ret
+
+
+class Session(RedfishBase):
+    """Session Information"""
+
+    def __init__(self, name, user):
+        super(Session, self).__init__(name)
+        self.namespace = "Session"
+        self.version = "v1_0_2.Session"
+        self.user = user
+
+    def fill_static_data(self):
+        super(Session, self).fill_static_data()
+        self.attrs["Name"] = "User Session"
+        self.attrs["Description"] = "Manage User Session"
+        self.attrs["UserName"] = self.user
+
+
 class RedfishBottleRoot(object):
     """Class that contains and builds the resource tree"""
 
@@ -658,6 +815,14 @@ class RedfishBottleRoot(object):
         self.chassis_collection = ChassisCollection("Chassis",
                                                     "Chassis Collection")
         self.v1.add_child(self.chassis_collection)
+
+        self.session_service = SessionService("SessionService",
+                                              "Session Service")
+        self.v1.add_child(self.session_service)
+
+        self.session_collection = SessionCollection("Sessions",
+                                                    "Session Collection")
+        self.session_service.add_child(self.session_collection)
 
         self.system_collection = SystemCollection("Systems",
                                                   "Computer System Collection")
@@ -783,3 +948,9 @@ class RedfishBottleRoot(object):
 
     def do_action(self, path, obj):
         return self.root.action(path, obj)
+
+    def do_post(self, path, obj):
+        return self.root.post_data(path, obj)
+
+    def do_delete(self, path, obj):
+        return self.root.del_data(path, obj)
